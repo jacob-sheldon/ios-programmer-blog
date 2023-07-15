@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iOS 开发栈 | HitTest+UIScrollView panGestureRecognizer（竖直滚动上层ScrollView，水平滚动下层CollectionView）</title>
+  
+  <link rel="stylesheet" href="/assets/css/post.css" />
+  <link rel="stylesheet" href="/assets/css/syntax.css" />
+  
+  <link rel="stylesheet" href="/assets/css/common.css" />
+  <script src="/assets/js/categories.js"></script>
+  
+  <script defer src="/assets/js/lbox.js"></script>
+  
+</head>
+
+  <body>
+    <main>
+      <header>
+  <a class="site-title" href="/">iOS 开发栈</a>
+</header>
+
+      <section class="article">
+        <div class="article-header">
+          <h2 class="article-title">HitTest+UIScrollView panGestureRecognizer（竖直滚动上层ScrollView，水平滚动下层CollectionView）</h2>
+          <small class="date">09 Oct 2021</small>
+        </div>
+        <div class="content"><p>用户触摸事件和手势处理是iOS开发的一大知识点，比如按钮点击、UIScrollView及其子类的拖拽滚动，虽然这个知识点非常重要，但是由于UIKit已经做了很完善的封装，开发者能够对它深入了解的机会并不多。本人最近在项目的需求开发过程中遇到了这样一个场景，在这里把用到的知识点分享给大家，希望当你遇到类似场景的时候这篇文章能提供一些帮助。</p>
+
+<p>本文主要涉及的内容包括：</p>
+
+<ol>
+  <li>场景重现，其他更日常的方法为什么不能解决问题。</li>
+  <li>使用<code class="language-plaintext highlighter-rouge">hitTest:withEvent:</code>实现穿过上层ScrollView</li>
+  <li>通过传递ScrollView的panGestureRecognizer重新使ScrollView可以滚动</li>
+</ol>
+
+<p>让我们开始吧🛎
+<!-- more -->
+用户触摸事件和手势处理是iOS开发的一大知识点，比如按钮点击、UIScrollView及其子类的拖拽滚动，虽然这个知识点非常重要，但是由于UIKit已经做了很完善的封装，开发者能够对它深入了解的机会并不多。本人最近在项目的需求开发过程中遇到了这样一个场景，在这里把用到的知识点分享给大家，希望当你遇到类似场景的时候这篇文章能提供一些帮助。</p>
+
+<p>本文主要涉及的内容包括：</p>
+
+<ol>
+  <li>场景重现，其他更日常的方法为什么不能解决问题。</li>
+  <li>使用<code class="language-plaintext highlighter-rouge">hitTest:withEvent:</code>实现穿过上层ScrollView</li>
+  <li>通过传递ScrollView的panGestureRecognizer重新使ScrollView可以滚动</li>
+</ol>
+
+<p>让我们开始吧🛎</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<p><img src="../../images/hittest-scrollview/head.png" alt="ios渐变色" /></p>
+
+<h1 id="业务场景重现"><a href="#业务场景重现" title="业务场景重现"></a>业务场景重现</h1>
+
+<blockquote>
+  <p>在App的一个页面中，上半部分是一个<code class="language-plaintext highlighter-rouge">UICollectionView</code>（下面统称为A），它可以横向滚动，并且它是固定的；还有一个<code class="language-plaintext highlighter-rouge">UIScrollView</code>（下面统称为B）是可以竖向滚动的，并且在整个界面中任何一个点都可以滚动，默认情况下B只在页面的下半部分显示内容，当它向上滚动时会覆盖住下面的UICollectionView。</p>
+</blockquote>
+
+<p>拿到这个需求后，我想过下面这些方法：</p>
+
+<ol>
+  <li>使用带header的<code class="language-plaintext highlighter-rouge">UITableView</code>或者<code class="language-plaintext highlighter-rouge">UICollectionView</code>并不行，因为A是固定在页面上半部分而且是会被B覆盖的。❌</li>
+  <li>默认情况下把B放在A的下面并且B为透明色，当B向上滚动时再把A放到B的下面。这种方法可以使A在默认情况下支持滚动，并且可以让B一直可以滚动。但是当B向上滚动时，A就不能滚动了。❌</li>
+  <li>B放在A上面，并且B的大小是全屏，但是内容是从A的下边缘开始。这时B的上下滚动是没有问题，不过A无法滚动。如果设置B的<code class="language-plaintext highlighter-rouge">userInteractionEnabled</code>为NO，那么A就可以滚动了，但是B却不能响应手势了。</li>
+</ol>
+
+<p>此时，有一个想法出现：是不是可以做到A响应页面上半部分的手势，B响应下半部分的触摸呢？其实是可以的，通过自定义一个<code class="language-plaintext highlighter-rouge">CustomScrollView</code>并重写<code class="language-plaintext highlighter-rouge">hitTest:withEvent:</code>方法，<strong>这里需要注意的是随着B向上滚动可以穿透的区域是逐渐缩小的</strong>。这样做页面下半部分的B区域是没有问题的，当横向滑动页面上半部分的A区域时，A也能横向滚动；当在上半部分纵向滑动时可以通过监测滚动距离来设置<code class="language-plaintext highlighter-rouge">contentOffset</code>来使B滚动，不过要模仿<code class="language-plaintext highlighter-rouge">UIScrollView</code>的<code class="language-plaintext highlighter-rouge">bounces</code>就比较困难了（<code class="language-plaintext highlighter-rouge">[SwipeTableView](https://github.com/Roylee-ML/SwipeTableView)</code>模仿的不错）。</p>
+
+<p>这种方法应该是基本可以实现效果，但是作为一个程序员，本着精(neng)益(sheng)求(ze)精(sheng)的精神，我认为这种方法太笨重了，不利于以后需求的变更。所以，我又冥思苦想🤔🤔🤔了10分钟，总感觉可以通过手势来解决这个问题。</p>
+
+<p>🤔🤔🤔</p>
+
+<p>🤔🤔🤔</p>
+
+<p>🤔🤔🤔</p>
+
+<p>🙇‍♂️功夫不负有心人🙇‍♂️，我想到了之前看过的一个WWDC视频讲到了iPhone的主界面下拉搜索功能的实现方法，貌似跟这个需求很相似。</p>
+
+<blockquote>
+  <p>但是你要是问我这个视频的链接，那我很不好意思，我找了好久都没有找到。如果你找到了麻烦告诉我，万分感谢。</p>
+</blockquote>
+
+<h1 id="hittestwithevent"><a href="#hitTest-withEvent" title="hitTest:withEvent:"></a>hitTest:withEvent:</h1>
+
+<p>从以上的分析中有一点是可以肯定的，那就是A必须在B的下面，并且为了能够让A可以滚动，就必须能够穿过B。不过这里需要注意⚠️，B上面可能会有其他子视图需要能够触发事件（比如有一个UIButton），所以B不能被完全穿透。</p>
+
+<p>而为了达到这个效果，需要创建<code class="language-plaintext highlighter-rouge">UIScrollView</code>的子类并且B是这个子类的实例。代码大概是这样：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// CustomScrollView.h  
+#import &lt;UIKit/UIKit.h&gt;  
+  
+NS_ASSUME_NONNULL_BEGIN  
+  
+@interface CustomScrollView : UIScrollView  
+  
+@end  
+  
+// CustomScrollView.m  
+#import "CustomScrollView.h"  
+  
+@implementation CustomScrollView  
+  
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {  
+ UIView *hitView = [super hitTest:point withEvent:event];  
+ for (UIView *sub in self.subviews) {  
+ if (CGRectContainsPoint(sub.frame, point)) {  
+ return hitView;  
+ }  
+ }  
+ return nil;  
+}  
+  
+@end  
+</code></pre></div></div>
+<p>其中，<strong>在<code class="language-plaintext highlighter-rouge">hitTest:withEvent:</code>方法中的<code class="language-plaintext highlighter-rouge">for</code>循环就是为了让这个ScrollView的子类可以正常响应事件。而最终通过<code class="language-plaintext highlighter-rouge">return nil</code>就让除了ScrollView子类所在范围之外的区域都会被穿透。</strong></p>
+
+<p>但是这样做以后，由于B的上半部分是空白的，那竖向滑动这半部分B就无法正常滚动了。</p>
+
+<h1 id="传递pangesturerecognizer"><a href="#传递panGestureRecognizer" title="传递panGestureRecognizer"></a>传递<code class="language-plaintext highlighter-rouge">panGestureRecognizer</code></h1>
+
+<p><code class="language-plaintext highlighter-rouge">UIScrollView</code>之所以能够响应很多触摸事件是因为它内部有很多手势——<code class="language-plaintext highlighter-rouge">UIGestureRecognizer</code>，通过打印<code class="language-plaintext highlighter-rouge">gestureRecognizers</code>可以看到这些手势。其中有一个是<code class="language-plaintext highlighter-rouge">UIPanGestureRecognizer</code>就是用来处理拖动的，而<code class="language-plaintext highlighter-rouge">UIScrollView</code>类也提供了获取这个手势的属性<code class="language-plaintext highlighter-rouge">panGestureRecognizer</code>。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(  
+ "&lt;UIScrollViewDelayedTouchesBeganGestureRecognizer: 0x7f7aec00b200; state = Possible; delaysTouchesBegan = YES; view = &lt;CustomScrollView 0x7f7aeb813c00&gt;; target= &lt;(action=delayed:, target=&lt;CustomScrollView 0x7f7aeb813c00&gt;)&gt;&gt;",  
+ "&lt;UIScrollViewPanGestureRecognizer: 0x7f7aec01c6e0; state = Possible; delaysTouchesEnded = NO; view = &lt;CustomScrollView 0x7f7aeb813c00&gt;; target= &lt;(action=handlePan:, target=&lt;CustomScrollView 0x7f7aeb813c00&gt;)&gt;&gt;",  
+ "&lt;UIScrollViewKnobLongPressGestureRecognizer: 0x7f7aec02bd50; state = Possible; view = &lt;CustomScrollView 0x7f7aeb813c00&gt;; target= &lt;(action=_handleKnobLongPressGesture:, target=&lt;CustomScrollView 0x7f7aeb813c00&gt;)&gt;; numberOfTapsRequired = 0; minimumPressDuration = 0.1&gt;",  
+ "&lt;UIScrollViewKnobLongPressGestureRecognizer: 0x7f7aec02ea70; state = Possible; view = &lt;CustomScrollView 0x7f7aeb813c00&gt;; target= &lt;(action=_handleKnobLongPressGesture:, target=&lt;CustomScrollView 0x7f7aeb813c00&gt;)&gt;; numberOfTapsRequired = 0&gt;",  
+ "&lt;UIHoverGestureRecognizer: 0x7f7aec00f930; state = Possible; view = &lt;CustomScrollView 0x7f7aeb813c00&gt;; target= &lt;(action=_handleKnobHoverGesture:, target=&lt;CustomScrollView 0x7f7aeb813c00&gt;)&gt;&gt;",  
+ "&lt;_UIDragAutoScrollGestureRecognizer: 0x60000295d700; state = Possible; cancelsTouchesInView = NO; delaysTouchesEnded = NO; view = &lt;CustomScrollView 0x7f7aeb813c00&gt;; target= &lt;(action=_handleAutoScroll:, target=&lt;CustomScrollView 0x7f7aeb813c00&gt;)&gt;&gt;"  
+)  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">UIGestureRecognizer</code>有两个属性是<code class="language-plaintext highlighter-rouge">view</code>和<code class="language-plaintext highlighter-rouge">target</code>，view表示响应手势的视图，target确定了处理事件的对象。从上面的log可以看出ScrollView的滑动手势的view和target都是CustomScrollView。</p>
+
+<p>而此时<strong>把这个ScrollView的panGestureRecognizer添加到它的父视图上，就可以让父视图来响应手势，但是target还是ScrollView，也就是说这时候滑动ScrollView的父视图是可以让实现ScrollView的滑动效果的。</strong></p>
+
+<p>至此，A的横向滚动、B的全屏幕纵向滚动以及B子视图的事件处理都得到完美实现。🎉🎉🎉</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>通过完成这一个需求，让我对iOS的事件处理有了深刻的理解，并对UIGestureRecognizer也有了更深入的了解。这一切的起源都是对精益求精的追求。</p>
+
+<p>回头想想，当时看那个WWDC的视频的时候还不知道在哪里能用上，以至于到后来都忘记了具体的做法，但是解决类似问题的思路却是实打实的留在了脑海了。真的是“今天学到的知识，不一定哪天就用到了”。</p>
+</div>
+      </section>
+      <footer>
+  <p>&copy; 1947 - 2022 | iOS 开发栈</p>
+</footer>
+
+    </main>
+    <section id="category-modal-bg"></section>
+<section id="category-modal">
+  <h1 id="category-modal-title"></h1>
+  <section id="category-modal-content"></section>
+</section>
+
+  </body>
+</html>
+

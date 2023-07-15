@@ -1,0 +1,2 @@
+I"<p>在开发过程中你肯定遇到过这种场景：控制器的View中包含一个自定义视图A，A里又有包含button的自定义视图B，当用户点击button需要跳转到另一个控制器。此时跳转的逻辑当然应该在控制器里，那么要想把这个button的点击事件传递到控制器里要可以通过代理或者在控制器里<code class="language-plaintext highlighter-rouge">self.view.A.B.button addTarget</code>，除此之外还可以利用事件传递链来更和谐的处理。</p>
+:ET

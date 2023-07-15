@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iOS 开发栈 | iOS国际化手动管理localization文件</title>
+  
+  <link rel="stylesheet" href="/assets/css/post.css" />
+  <link rel="stylesheet" href="/assets/css/syntax.css" />
+  
+  <link rel="stylesheet" href="/assets/css/common.css" />
+  <script src="/assets/js/categories.js"></script>
+  
+  <script defer src="/assets/js/lbox.js"></script>
+  
+</head>
+
+  <body>
+    <main>
+      <header>
+  <a class="site-title" href="/">iOS 开发栈</a>
+</header>
+
+      <section class="article">
+        <div class="article-header">
+          <h2 class="article-title">iOS国际化手动管理localization文件</h2>
+          <small class="date">22 Jul 2021</small>
+        </div>
+        <div class="content"><p>Xcode在提供给开发者方便好用的自动国际化方案的同时也提供了手动管理多语言文件的方案，手动管理方案虽然使用步骤更多但是更好理解。</p>
+
+<p>这篇文章主要包括下面几点方面：</p>
+
+<ol>
+  <li>怎么创建每个语言对应的文件夹和文件夹里面包含的文件</li>
+  <li><code class="language-plaintext highlighter-rouge">genstrings</code>工具的使用方法</li>
+  <li>使用<code class="language-plaintext highlighter-rouge">ibtool</code>更新xib、storyboard的多语言文件
+<!-- more -->
+Xcode在提供给开发者方便好用的自动国际化方案的同时也提供了手动管理多语言文件的方案，手动管理方案虽然使用步骤更多但是更好理解。</li>
+</ol>
+
+<p>这篇文章主要包括下面几点方面：</p>
+
+<ol>
+  <li>怎么创建每个语言对应的文件夹和文件夹里面包含的文件</li>
+  <li><code class="language-plaintext highlighter-rouge">genstrings</code>工具的使用方法</li>
+  <li>使用<code class="language-plaintext highlighter-rouge">ibtool</code>更新xib、storyboard的多语言文件</li>
+</ol>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<p><img src="../../images/localization-yourself/first.png" alt="" /></p>
+
+<h1 id="创建多语言文件夹"><a href="#创建多语言文件夹" title="创建多语言文件夹"></a>创建多语言文件夹</h1>
+
+<p>通过<a href="https://www.iosprogrammer.tech/xcode/language-internalization-ib/#%E5%AE%8C%E6%95%B4%E4%BA%86%E8%A7%A3%E5%9B%BD%E9%99%85%E5%8C%96%E6%AD%A5%E9%AA%A4">在Xcode项目的Project中添加Locations语言</a>后，对应语言的文件夹就会出现在项目的文件夹目录中了。</p>
+
+<p><img src="../../images/localization-yourself/add-language.png" alt="" /> <img src="../../images/localization-yourself/folder-languages.png" alt="" /></p>
+
+<p>可以看到这里的多语言文件夹都是以<code class="language-plaintext highlighter-rouge">.lproj</code>为后缀，个数和支持的语言个数相同，并且是以语言的ID（在添加语言时括号里面的内容）为前缀。</p>
+
+<p><img src="../../images/localization-yourself/base-initial.png" alt="base-initial" /> <img src="../../images/localization-yourself/ja-initial.png" alt="ja-initial" /> <img src="../../images/localization-yourself/zh-Hans-initial.png" alt="za-Hans-initial" /></p>
+
+<p>在自动生成的多语言文件夹中，<code class="language-plaintext highlighter-rouge">Base.lproj</code>包含<code class="language-plaintext highlighter-rouge">LaunchScreen.storyboard</code>和<code class="language-plaintext highlighter-rouge">Main.storyboard</code>两个文件，而在其他多语言文件中包含着在添加多语言时选择的要进行多语言的<em>.storyboard文件并命名为</em>.strings。</p>
+
+<h1 id="对用户可见字符串进行国际化"><a href="#对用户可见字符串进行国际化" title="对用户可见字符串进行国际化"></a>对用户可见字符串进行国际化</h1>
+
+<p>上一步中通过添加不同的语言后Xcode自动生成了对应语言的.lproj文件夹来存放对应语言的翻译资源，但是到目前为止文件夹中只有storyboard中包含的文本。</p>
+
+<h2 id="为开发语言base生成localizablestrings多语言文件"><a href="#为开发语言（Base）生成Localizable-strings多语言文件" title="为开发语言（Base）生成Localizable.strings多语言文件"></a>为开发语言（Base）生成Localizable.strings多语言文件</h2>
+
+<p>在<a href="https://www.iosprogrammer.tech/xcode/international-user-facing-text/#%E6%A0%87%E8%AE%B0%E9%9C%80%E8%A6%81%E6%9C%AC%E5%9C%B0%E5%8C%96%E7%9A%84%E6%96%87%E6%9C%AC">标记需要本地化的文本</a>中通过使用<code class="language-plaintext highlighter-rouge">NSLocalizedString</code>宏把一些用户可见的字符串进行了标记，之后通过Xcode的自动多语言导出、导入来生成不同的多语言文本。</p>
+
+<p>手动生成多语言也是需要先通过<code class="language-plaintext highlighter-rouge">NSLocalizedString</code>宏或其变体对文本进行标记。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>NSLocalizedString(@"Official Account", @"This is a title");  
+</code></pre></div></div>
+<p>Official Account会作为key出现在每一个语言的文件中，而This is a title是这条翻译的一个注释方便理解。</p>
+
+<p>标记过需要翻译的内容后使用<code class="language-plaintext highlighter-rouge">genstrings</code>工具生成<code class="language-plaintext highlighter-rouge">Localizable.strings</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd [Project folder]  
+find . -name *.m | xargs genstrings -o Base.lproj  
+</code></pre></div></div>
+<ol>
+  <li>打开终端并使用<code class="language-plaintext highlighter-rouge">cd</code>命令进入当前项目的目录（.lproj文件夹所在的目录）</li>
+  <li><code class="language-plaintext highlighter-rouge">find . -name *.m</code>找出所有Objc项目的实现文件，所有用户可见的文本都在.m文件中</li>
+  <li>调用<code class="language-plaintext highlighter-rouge">genstrings</code>命令并将最终结果输出(- o)到Base.lproj文件夹中</li>
+</ol>
+
+<p>会发现，Base.lproj文件夹中多了一个<code class="language-plaintext highlighter-rouge">Localizable.strings</code>，并且这个文件中包含多语言文本：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// Base.lproj中的Localizable.strings文件  
+  
+/* This is a title */  
+"Official Account" = "Official Account";  
+</code></pre></div></div>
+<h2 id="为其他语言创建多语言文件"><a href="#为其他语言创建多语言文件" title="为其他语言创建多语言文件"></a>为其他语言创建多语言文件</h2>
+
+<ol>
+  <li>使用Xcode打开项目后，右击目录树选择<code class="language-plaintext highlighter-rouge">Add file to “[项目名]”</code>并选择<code class="language-plaintext highlighter-rouge">Localizable.strings</code>文件。</li>
+  <li>选中添加到目录树中的<code class="language-plaintext highlighter-rouge">Localizable.strings</code>文件，点击Xcode右上角的File Inspector，并在Localization中添加语言。</li>
+  <li><code class="language-plaintext highlighter-rouge">Localizable.strings</code>会成为文件夹的结构，展开后可以看到各个语言对应的文本。并且每个文件中都包含上一步中添加的“Official Account”键值对。</li>
+</ol>
+
+<h1 id="使用ibtool更新xibstoryboard多语言"><a href="#使用ibtool更新xib-storyboard多语言" title="使用ibtool更新xib/storyboard多语言"></a>使用<code class="language-plaintext highlighter-rouge">ibtool</code>更新xib/storyboard多语言</h1>
+
+<p>当添加、删除IB（xib或者storyboard）文件中的视图时，对应多语言文件的内容不会自动跟着变化，此时可以使用<code class="language-plaintext highlighter-rouge">ibtool</code>工具来进行更新操作。</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ibtool [MyNib].xib --generate-strings-file [MyNib_new.strings]  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">ibtool</code>的第一个参数是IB文件的路径，“[MyNib_new.strings]”表示一个多语言文件。下面是一个例子：</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ibtool Base.lproj/Main.storyboard --generate-strings-file zh-Hans.lproj/Main.strings  
+  
+$ ibtool Base.lproj/Main.storyboard --generate-strings-file en.lproj/Main.strings  
+</code></pre></div></div>
+<p>把Main.storybaord进行国际化，它的目录是在Base.lproj中，先后生成了简体中文和英文两个多语言文件。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// en.lproj/Main.strings  
+/* Class = "UIButton"; normalTitle = "New Button"; ObjectID = "j5H-7t-MJu"; */  
+"j5H-7t-MJu.normalTitle" = "New Button";  
+  
+/* Class = "UIButton"; normalTitle = "This is a Button"; ObjectID = "mM3-Pc-ngE"; */  
+"mM3-Pc-ngE.normalTitle" = "This is a Button";  
+</code></pre></div></div>
+<p>当增加、删除IB文件中的内容后再次执行上面的命令后，Main.strings文件会把对应的视图多语言文本进行删除或者添加。</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>这篇文章讨论了手动管理多语言文件的方案，大部分内容参考自官方文档<a href="https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPInternational/MaintaingYourOwnStringsFiles/MaintaingYourOwnStringsFiles.html">Managing Strings Files Yourself</a>，希望能够对你有帮助。🙏</p>
+</div>
+      </section>
+      <footer>
+  <p>&copy; 1947 - 2022 | iOS 开发栈</p>
+</footer>
+
+    </main>
+    <section id="category-modal-bg"></section>
+<section id="category-modal">
+  <h1 id="category-modal-title"></h1>
+  <section id="category-modal-content"></section>
+</section>
+
+  </body>
+</html>
+

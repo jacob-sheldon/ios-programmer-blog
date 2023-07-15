@@ -1,0 +1,125 @@
+I"I<p>开发过程中基本都是在使用 IDE（Xcode）软件，IDE 里面集成了一整套开发工具链，虽然用起来非常方便，但是也让开发者丧失了接触具体工具的机会，而且 IDE 在很多的情况下都是阉割了工具的一些功能来达到方便的目的。因此直接学习某个工具可以让我们更好的了解整个开发过程，也可以更深入的利用工具的能力。</p>
+
+<p>本文就学习 LLDB 这个调试工具的用法，主要包括这几个部分：</p>
+
+<ol>
+  <li>使用 LLDB 启动程序</li>
+  <li>打断点和分步调试</li>
+  <li>设置监测点（watch point)</li>
+</ol>
+
+<!-- more -->
+
+<iframe src="//player.bilibili.com/player.html?bvid=BV1Ar4y1p7J3&amp;page=1" style="width:100%;height: 400px" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+
+<h1 id="启动程序">启动程序</h1>
+
+<p>要想对一个程序进行调试就必须在 debug 模式下编译该程序，不同的编译工具命令也不同，下面是 gcc 和 clang 命令行：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gcc(clang) -g 
+</code></pre></div></div>
+
+<p>编译之后就可以使用 lldb 启动程序了：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>lldb  a.out
+</code></pre></div></div>
+
+<p>这样就进入了 lldb 命令中，要运行程序可以使用：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) run
+(lldb) r
+</code></pre></div></div>
+
+<p>上面的第 2 行是第 1 行的快捷方式，下面还有类似用法不再进行说明。</p>
+
+<h1 id="设置断点">设置断点</h1>
+
+<p>设置断点的方式可以分为在源码的某一行加断点和根据符号（方法名）加断点。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// 某行加断点
+// # 表示行号
+(lldb) breakpoint set -f lldb_sample.c -l #
+(lldb) br s -f lldb_sample.c -l #
+(lldb) b lldb_sample.c : #
+
+// 给方法名加断点
+(lldb) b [方法名]
+</code></pre></div></div>
+
+<h1 id="操作断点">操作断点</h1>
+
+<p>列出所有已添加断点</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// br 是 breakpoint 的简写
+(lldb) br list
+</code></pre></div></div>
+
+<p>删除断点</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// 删除某个断点，# 可以从列出断点中查到
+(lldb) br del #
+
+// 删除所有断点
+(lldb) br del
+</code></pre></div></div>
+
+<h1 id="分步调试">分步调试</h1>
+
+<p>跳过，是指跳过对其他方法的调用</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) next
+(lldb) n
+</code></pre></div></div>
+
+<p>进入，进入被调用方法内部</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) step
+(lldb) s
+</code></pre></div></div>
+
+<p>继续执行，直到下一个断点处或程序末尾</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) c
+</code></pre></div></div>
+
+<h1 id="查看变量">查看变量</h1>
+
+<p>打印变量内容</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) p varName
+</code></pre></div></div>
+
+<p>列出当前栈帧变量</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) frame variable
+(lldb) fr v
+</code></pre></div></div>
+
+<p>切换栈帧</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) frame select #
+(lldb) fr s
+</code></pre></div></div>
+
+<p>调用栈</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) bt
+</code></pre></div></div>
+
+<h1 id="使用监视断点">使用监视断点</h1>
+
+<p>！只有在程序运行过程中才能使用监视断点。</p>
+
+<p>给全局变量设置监视断点</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) watchpoint set variable [some globalVariable]
+(lldb) watchpoint set variable -w read | write | read_write [some globalVariable]
+</code></pre></div></div>
+
+<p>给局部变量（自动变量）设置监视断点</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) b main
+(lldb) w s v d.memberVar
+</code></pre></div></div>
+
+<h1 id="终止调试">终止调试</h1>
+
+<p>终止当前进行，强制结束程序执行，但是仍保留在 lldb 中</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) kill
+</code></pre></div></div>
+
+<p>退出 LLDB</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(lldb) quit (cmd-d)
+</code></pre></div></div>
+:ET

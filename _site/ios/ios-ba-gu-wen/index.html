@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iOS 开发栈 | 一文打尽iOS八股文</title>
+  
+  <link rel="stylesheet" href="/assets/css/post.css" />
+  <link rel="stylesheet" href="/assets/css/syntax.css" />
+  
+  <link rel="stylesheet" href="/assets/css/common.css" />
+  <script src="/assets/js/categories.js"></script>
+  
+  <script defer src="/assets/js/lbox.js"></script>
+  
+</head>
+
+  <body>
+    <main>
+      <header>
+  <a class="site-title" href="/">iOS 开发栈</a>
+</header>
+
+      <section class="article">
+        <div class="article-header">
+          <h2 class="article-title">一文打尽iOS八股文</h2>
+          <small class="date">03 Mar 2022</small>
+        </div>
+        <div class="content"><p>你喜欢”八股文“吗？</p>
+
+<!-- more -->
+
+<p>有代有一位哲学家说过“编程=数据结构+算法“，每一个真正懂编程的都应该深刻理解这句话并点头同意。</p>
+
+<p>那么数据结构又是什么呢？数据结构就是操作内存的不同方式，不论是数组、链表、树还是图其实本质上就是两种 —— 连续的和不连续的。连续的优点是能够快速查找，但是在伸缩时就要麻烦点，不连续的容易伸缩，但是查找麻烦并且需要付出更多的空间作为代价。</p>
+
+<p>算法又是什么呢？算法就是操作各种数据结构的奇技淫巧，循环、递归、双指针等等无非都是遍历、访问、添加、删除数据结构时的方式。</p>
+
+<p>iOS 的八股文基本上就是指的各种语法的实现原理 —— 或者叫底层实现，这东西很重要，是因为这才是编程的本质，原因就是这里到处都是数据结构和算法，对这些不理解的话不只说明你不是一个合格的 iOS 程序员，甚至都不能说你是一个合格的程序员。</p>
+
+<p>但是八股文又没有那么重要，因为要掌握这些数据结构和算法不一定需要通过这些八股文的内容，你完全可以通过自己开发一个操作系统、数据库、编程语言来证明你对这些东西完全了如指掌。</p>
+
+<p>但是如果你没有其他方式证明自己是一个合格的程序员，那用人单位就只能通过这些八股文来证明你是一个合格的 iOS 程序员。</p>
+
+<p>那么怎么掌握这些八股文呢？看源码，相信你已经看到到很多这样的建议了，这个建议完全没有问题，就像当你发烧的时候被人跟你说你生病了一样正确。</p>
+
+<p>看源码是远远不够的，把看到的源码写篇博客远远不够。贴上一大段代码，添加上几行注释只能说明你看懂了这段逻辑和语法。</p>
+
+<p>要想真正掌握这些八股文一定要在看源码、读博客的基础上<strong>自己总结提炼</strong>，每一个知识点的逻辑都要自己捋顺写下来说出来，自己评判一下有没有漏洞，是不是每一步都是闭合的自洽的。</p>
+
+<p>好了说了这么多，下面把我总结的 iOS 八股文贴上来，如果有不对的欢迎指出。我也鼓励你能够自己把这些内容消化成自己的逻辑。</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="应用启动过程">应用启动过程</h1>
+
+<p>主要包括三个部分：1. main函数前 2. main 函数 3. AppDelegate</p>
+
+<h2 id="main-函数前做了哪些工作">Main 函数前做了哪些工作</h2>
+
+<ol>
+  <li>动态链接器加载应用程序</li>
+  <li>动态链接器加载用到的 dylib 动态库并完成 rebase 和 binding</li>
+  <li>Objc 运行时相关类的注册、分类的注册等</li>
+  <li>类的初始化，调用 load 方法</li>
+</ol>
+
+<h3 id="rebase-和-bind">Rebase 和 Bind</h3>
+
+<p>ASLR(Address Space Layout Randomization) 地址空间布局随机化。动态库的位置不是固定的而是会从一个随机内存地址开始。</p>
+
+<p>Rebase 的作用就是为了消除 ASLR 产生的影响，给应用程序的内存地址设置正确的值，也就是相对地址 + 随机偏移量。</p>
+
+<p>Bind：由于 app 在运行时要依赖其他动态库中的内容，但是在打包时并不会直接把所依赖库一起打包，就需要在执行 app 时把动态库的函数定制进行绑定。</p>
+
+<h2 id="优化应用启动时间">优化应用启动时间</h2>
+
+<ol>
+  <li>减少动态库的数量</li>
+  <li>减少类、分类数量，并把用不到的函数去掉</li>
+  <li>减少 load 方法以及里面的逻辑</li>
+  <li>减少 appDelegate 中 willFinish 和 didFinish 中的任务</li>
+  <li>调整启动过程中需要调用的函数位置，尽量放到同一个或两个内存页</li>
+</ol>
+
+<h1 id="分类的原理">分类的原理</h1>
+
+<p>分类中的对象方法也是存放在类对象中的，同类中实现的方法在同一个地方，调用步骤两者也相同。</p>
+
+<p>分类的底层结构是一个 <code class="language-plaintext highlighter-rouge">category_t</code> 的结构体，里面包含了对象方法、类方法、协议和属性，但是里面<em>不包含实例变量。</em>一个类的多个分类保存在 <code class="language-plaintext highlighter-rouge">category_list</code> 中。</p>
+
+<p>在 runtime 中会把 category_t 中的方法、协议和属性拷贝到类对象的数组中，并且会放在原类方法的前面。</p>
+
+<h1 id="load-initialize"><code class="language-plaintext highlighter-rouge">load</code> <code class="language-plaintext highlighter-rouge">initialize</code></h1>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th>load</th>
+      <th>initialize</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>调用时机</td>
+      <td>在程序启动就会调用，当装载类信息的时候就会调用</td>
+      <td>第一次使用类的时候</td>
+    </tr>
+    <tr>
+      <td>调用次序</td>
+      <td>优先调用类的load方法（先父类后子类），之后调用分类的load方法。</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>类和分类都是按照加载顺序调用。</td>
+      <td>分类重写initialize方法时只会调用最后加载的那个分类的方法。</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>先父类后子类。</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>调用次数</td>
+      <td>每个类/分类调用一次。</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>分类不会覆盖主类。</td>
+      <td>每一个类只会initialize一次。</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>分类实现后原类的不会调用</td>
+      <td> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>调用方式</td>
+      <td>直接拿到load方法的内存地址直接调用方法</td>
+      <td>通过消息发送机制调用的、</td>
+    </tr>
+  </tbody>
+</table>
+
+<h1 id="关联对象原理">关联对象原理</h1>
+
+<p><code class="language-plaintext highlighter-rouge">AssociationsManager</code> 是一个顶级对象，维护了一个 spinlock_t 的锁和 <code class="language-plaintext highlighter-rouge">AssociationsHashMap</code> 单例对。</p>
+
+<p><code class="language-plaintext highlighter-rouge">AssociationsHashMap</code> 是一个无序的哈希表，维护了从对象地址到 <code class="language-plaintext highlighter-rouge">ObjectAssociationMap</code> 的映射。</p>
+
+<p><code class="language-plaintext highlighter-rouge">ObjectAssociationMap</code> 维护了从 key(void * 类型) 到 <code class="language-plaintext highlighter-rouge">ObjcAssociation</code> 的映射。</p>
+
+<p><code class="language-plaintext highlighter-rouge">ObjectAssociation</code>  是一个表示具体关联结构的类，主要包含 _policy _value 两个字段。</p>
+
+<p>每一个对象地址对应一个 ObjectAssociationMap 对象，而一个 ObjectAssociationMap 对象保存着这个对象的若干条关联记录。</p>
+
+<h1 id="弱引用原理">弱引用原理</h1>
+
+<p><code class="language-plaintext highlighter-rouge">SideTable</code> 维护了一个 <code class="language-plaintext highlighter-rouge">spinlock_t</code> 的锁和 <code class="language-plaintext highlighter-rouge">weak_table_t</code> 主要作用是在操作 weak_table_t 的时候加锁。</p>
+
+<p><code class="language-plaintext highlighter-rouge">weak_table_t</code> 是一个全局弱引用表，主要保存了 <code class="language-plaintext highlighter-rouge">weak_entry_t</code> 的数组以及哈希过程中用到的数据等。 通过 <code class="language-plaintext highlighter-rouge">size_t begin = hash_pointer(referent) &amp; weak_table-&gt;mask;</code> 找到对象的 weak_table_t。</p>
+
+<p><code class="language-plaintext highlighter-rouge">weak_entry_t</code> 保存了被弱引用对象和弱引用对象地址数组。</p>
+
+<p>设置弱引用时会根据对象地址得到的哈希值找到 weak_table_t 的起始地址，之后遍历 weak_table_t 中的 entry，得到要添加到的位置，之后把新的弱引用放到这个位置。</p>
+
+<p>当弱引用对象销毁时，同样根据对象地址找到 weak_table_t，之后从 weak_entry_t 中的弱引用数组中找到要移除的弱引用对象将其置为 nil，当 weak_entry_t 中的弱引用数组被清空时把这个数组释放并将 weak_table_t 的 weak_entries 数组中对应的 weak_entry_t 内存清除。</p>
+
+<h1 id="常见的内存泄漏有哪些怎么避免">常见的内存泄漏有哪些？怎么避免？</h1>
+
+<ol>
+  <li>NSTimer 循环引用。</li>
+  <li>自己封装一个类在这个类里进行计时。</li>
+  <li>使用 iOS10 之后可用的不带 target 参数的启动计时器方法</li>
+  <li>给 NSTimer 添加分类，分类中用带有 block 的方法将 target 设置成 NSTimer 本身</li>
+  <li>代理 delegate 用 strong 修饰（应该用 weak）</li>
+  <li>block 里面要用 __weak</li>
+</ol>
+
+<h1 id="自动释放池原理">自动释放池原理</h1>
+
+<p>底层使用一个 <code class="language-plaintext highlighter-rouge">AutoreleasePoolPage</code> 的双向链表实现的，整个程序运行过程中，可能会有多个<code class="language-plaintext highlighter-rouge">AutoreleasePoolPage</code>对象。</p>
+
+<p>当向自动释放池中添加对象时，如果自动释放池不存在则创建一个 page，并将哨兵压栈。之后可以将需要自动释放的对象添加到 page 里面。</p>
+
+<p>如果满了就将哨兵压栈，并新建一页，并设置链表。</p>
+
+<p>释放过程是从最新的一页（hotpage）开始从后到前遍历当前页内的对象并挨个发送 release 消息。因为有哨兵的存在所以能够得到某一页的开始和结束。当一页没有任何对象了就销毁这一页。</p>
+
+<h1 id="简述-runloop">简述 Runloop</h1>
+
+<p>Runloop 本质上就是一个 while 死循环，有了这个循环就可以确保线程永远不会结束，这个循环通过操作系统底层的函数来进行休眠和唤起，以此来节省消耗。</p>
+
+<p>Runloop 主要的工作是接收并处理各种事件，包括创建和销毁自动释放池、处理点击时间、block回调、倒计时等等。</p>
+
+<p>一个 Runloop 包含多个 mode，一个 mode 又包含多个 source、timer、observer。</p>
+
+<p>线程和 Runloop 是一一对应的，它们的关系被保存在一个全局的 Dictionary 里。线程创建时并不会带有 Runloop，只有在第一次获取时才会创建。当线程结束时销毁 Runloop，除了主线程外，只能在线程内部获取对应的 Runloop。</p>
+
+<h1 id="事件传递链">事件传递链</h1>
+
+<p>AppDelegate → Window → ViewController → View → SubView → …</p>
+
+<h1 id="响应链">响应链</h1>
+
+<p>View → SuperView → … → ViewController → Window</p>
+
+<h1 id="简述-runtime">简述 Runtime</h1>
+
+<p>类C语言在编译后就确定了代码的执行过程，运行期只需要根据编译生成的二进制文件执行就可以了，而OC拥有一些动态特性，使它可以在运行期进行一些操作，比如说添加方法、交换方法等，而runtime就是用来实现这些动态特性的，此外Runtime还实现了消息转发机制。</p>
+
+<p>具体来说，OC的对象中都包含一个isa指针，根据这个指针可以找到当前实例对象的类对象，而类对象中包含了方法列表、属性列表、父类指针等成员，其中类对象也有一个isa指针，这个isa指针指向了元类对象，元类对象中包含了类方法列表和指向根元类的isa指针。</p>
+
+<h2 id="runtime-查找方法的过程">Runtime 查找方法的过程</h2>
+
+<ol>
+  <li>到类的方法缓存中找</li>
+  <li>查找本类方法列表</li>
+  <li>沿着继承链向上找</li>
+  <li>进入转发流程
+    <ol>
+      <li>动态解析，是否为找不到的方法添加了方法 <code class="language-plaintext highlighter-rouge">resolveInstanceMethod</code></li>
+      <li>有没有设置转发类来处理未实现的方法 <code class="language-plaintext highlighter-rouge">forwardingTargetForSelector</code></li>
+      <li>有没有新添加的方法实现可以接收消息  <code class="language-plaintext highlighter-rouge">forwardInvocation</code></li>
+      <li>消息转发的用途
+        <ol>
+          <li>JSPatch iOS 动态化更新</li>
+          <li>为 <code class="language-plaintext highlighter-rouge">@dynamic</code> 实现方法</li>
+          <li>实现多重代理</li>
+          <li>间接实现多继承</li>
+        </ol>
+      </li>
+    </ol>
+  </li>
+</ol>
+
+<h2 id="kvo-的实现原理">KVO 的实现原理</h2>
+
+<p>当一个对象使用了KVO监听，iOS系统会修改这个对象的isa指针，改为指向一个全新的通过Runtime动态创建的子类，子类拥有自己的set方法实现，set方法实现内部会顺序调用<strong>willChangeValueForKey方法、原来的setter方法实现、didChangeValueForKey方法，而didChangeValueForKey方法内部又会调用监听器的observeValueForKeyPath:ofObject:change:context:监听方法。</strong></p>
+
+<h1 id="mvvm">MVVM</h1>
+
+<h1 id="lru-算法">LRU 算法</h1>
+
+<p>使用一个 hash 表和一个双向链表。</p>
+
+<p>hash 表存放 key 到 链表节点的映射，链表中每个节点包含 key 和 value，最近使用的在头节点，最后使用的在尾节点。</p>
+
+<p>当使用 key 获取数据的时候先根据 hashmap 判断 key 是否存在，如果存在再根据 key 找到节点，然后到链表的节点获取对应的 value，最后把这个节点提到链表的最前面。</p>
+
+<p>当添加 key，value 时，如果能从 hashmap 中获取到 key，说明链表中存在这个包含 key 的节点，那么就找到这个节点并把它更新后放到链表的头节点；如果 hashmap 不包含这个 key，那么就新建一个节点并在 hashmap 中添加键值对，之后如果链表已满则删除尾节点，把新的节点添加到最前面。</p>
+
+<h1 id="多线程">多线程</h1>
+
+<h2 id="多线程的实现方式">多线程的实现方式</h2>
+
+<p>pthread：类 Unix 系统提供的操作系统级多线程处理方式，基本用不到</p>
+
+<p>NSThread：iOS 系统对 pthread 的封装，提供面向对象的操作方式，需要自己创建和开启线程</p>
+
+<p>GCD：自动管理线程的生命周期，根据系统的 CPU 及其负载进行任务调度。</p>
+
+<p>NSOperation、NSOperationQueue：分别对应 GCD 的任务和队列。提供了 cancel 操作和设置依赖的功能。</p>
+
+<h2 id="同步异步-串行并行">同步、异步 串行、并行</h2>
+
+<p>异步任务会开启新的线程，同步任务会在当前线程。异步串行多个任务会在一个开启的新线程中依次执行，异步开启并行任务会开启多个线程乱序执行。</p>
+
+<p>只要是同步任务（不论是并行还是串行）都会阻塞当前线程，只要是异步任务（不管是并行还是串行）都不会阻塞当前线程。</p>
+
+<p><em>当在主线程同步在主队列执行任务时会死锁。</em></p>
+
+<h2 id="实现线程同步的方法">实现线程同步的方法</h2>
+
+<ol>
+  <li>加锁</li>
+  <li>使用串行队列</li>
+</ol>
+
+<h2 id="多线程的弊端和解决方案">多线程的弊端和解决方案</h2>
+
+<ol>
+  <li>占用内存，上下文需要更新寄存器等操作需要一定耗时</li>
+  <li>产生线程竞争：多个线程共享资源可能会产生与预期不同的结果</li>
+  <li>锁：为了解决线程竞争的问题需要加锁，但是加锁会有性能损失</li>
+</ol>
+
+<h2 id="多线程锁">多线程锁</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th>自旋锁</th>
+      <th>互斥锁</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>概念</td>
+      <td>一直等待资源释放，死循环，处于忙等状态</td>
+      <td>当无法获取需要资源时会进入休眠状态，直到资源可用才会被唤起</td>
+    </tr>
+    <tr>
+      <td>优势</td>
+      <td>效率高，因为不会休眠，没有唤起和上下文切换的消耗</td>
+      <td>不需要一直占用CPU，在等待过程中 CPU 可以进行其他工作</td>
+    </tr>
+    <tr>
+      <td>劣势</td>
+      <td>一直占用 CPU，</td>
+      <td>需要进行唤起和上下文切换</td>
+    </tr>
+    <tr>
+      <td>使用场景</td>
+      <td>锁操作者保持锁操作比较短的情况下</td>
+      <td>锁操作的消耗大于上下文切换的消耗</td>
+    </tr>
+    <tr>
+      <td>iOS 中的锁</td>
+      <td>OSSpinLock</td>
+      <td>pthread_mutex/NSLock/NSRecursiveLock</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>pthread_mutux 设置 PTHREAD_MUTEX_RECURSIVE 后就成了递归锁，NSLock 是对 pthread_mutux 普通锁的封装，NSRecusiveLock 是对 pthread_mutux 递归锁的封装。</p>
+
+<p>递归锁：允许统一线程对统一把锁进行重复加锁。解决了递归调用过程中对使用同一把锁多次加锁的问题。</p>
+
+<p>自旋锁可以解决优先级反转的问题。</p>
+
+<h2 id="atomic-真的安全么是怎么实现的用的哪种锁">atomic 真的安全么？是怎么实现的？用的哪种锁？</h2>
+
+<p>原子性并不能保证线程安全. 只是相对运用了原子性keyword 的属性来说是线程安全的. 对于类来说则不一定.</p>
+
+<p><strong>atomic所说的线程安全只是保证了getter和setter存取方法的线程安全，并不能保证整个对象是线程安全的</strong></p>
+
+<p>比如对一个 MutableArray 设置了 atomic，只能确保多个线程在 set 和 get 这个属性的时候是线程安全的，但是如果有多个线程在同时操作这个数组（添加、删除元素），那就不是线程安全的了。</p>
+
+<p>Runtime 中有一个全局数组保存了属性锁 —— 这个锁是 <code class="language-plaintext highlighter-rouge">spinlock_t</code> 的自旋锁，根据属性在实例中的位置获取到这把锁，加锁后才能操作设置或者获取值，之后再释放锁。</p>
+
+<h1 id="tcp">TCP</h1>
+
+<h2 id="握手">握手</h2>
+
+<ol>
+  <li>客户端向服务端发送一个不包含应用数据的报文段。SYN=1 和 随机的起始序号（seq=client_isn）</li>
+  <li>服务端向客户端发送一个不包含应用数据的允许连接报文段。SYN=1  ACK=client_isn+1 和随机起始序号（seq=server_isn）。服务端分配缓存和变量</li>
+  <li>客户端再次确认。ACK=server_isn+1 SYN=0。客户端分配缓存和变量</li>
+</ol>
+
+<h2 id="断开">断开</h2>
+
+<ol>
+  <li>客户端向服务端发送报文段，客户端进入 FIN_WAIT_1 状态。FIN=1 和一个序号 seq=x（根据上一个序号）</li>
+  <li>服务端回送确认报文段，服务端进入 CLOSED_WAIT 状态，客户端收到后进入 FIN_WAIT_2 状态。ACK=1 ACKnum=x+1</li>
+  <li>服务端发送终止报文段，服务端进入 LAST_ACK 状态。FIN=1 seq=y（根据上一个序号）</li>
+  <li>客户端确认终止报文段，客户端进入 TIME_WAIT 状态，服务端收到后进入 CLOSED 状态，客户端等待 2MSL 后关闭连接。ACK=1 ACKnum=y+1</li>
+</ol>
+
+<p>握手或者挥手次数为什么需要3次和四次，能少一次吗？</p>
+
+<p>不能，需要这些次数的原因是防止报文在传递过程中出现丢包或者超时的问题。比如说在握手阶段如果没有第三个报文，那么服务端无法确认客户端是否收到了自己发送的确认报文，那就没办法确定后面到来的 TCP 报文的正确和安全性。</p>
+
+<h1 id="ssl">SSL</h1>
+
+<h2 id="握手-1"><strong>握手</strong></h2>
+
+<ol>
+  <li>客户发送它支持的密码算法列表，连同一个客户的不重数。</li>
+  <li>从该列表中，服务器选择一种对称算法（如AES）、一种公钥算法（如RSA）和一种MAC算法。它把它的选择以及证书和一个服务器不重数返回给客户。</li>
+  <li>客户验证该证书，提取服务器的公钥，生成一个前主密钥（Pre-Master Secrete, PMS），用服务器的公钥加密该 PMS，并将加密的 PMS 发送给服务器。</li>
+  <li>使用相同的密钥导出函数，客户和服务器独立地从 PMS 和不重数中计算出主密钥（Master Secrete，MS）。然后该 MS 被切片以生成两个密码和两个 MAC 密钥。此外，当选择的对称密码应用于 CBC（例如 3DES 或 AES），则两个初始化向量（IV）也从该 MS 获得，这两个 IV 分别用于该连接的两端。自此以后，客户和服务器之间发送的所有报文均被加密和鉴别（使用 MAC）。</li>
+  <li>客户发送所有握手报文的一个 MAC。</li>
+  <li>服务器发送所有握手报文的一个 MAC。</li>
+</ol>
+
+<p>最后两步使握手免遭篡改。</p>
+
+<h2 id="断开-1"><strong>断开</strong></h2>
+
+<p>通过终止 TCP 连接来结束 SSL 会话。为了防止被截断攻击就在类型字段中指出该记录是用于终止 SSL 会话的。接收方通过使用的 MAC 就可以得知是否是一个正常的关闭。</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<p>最后，如果有人问你某一个知识点的 API 是什么，你就转身走人。</p>
+</div>
+      </section>
+      <footer>
+  <p>&copy; 1947 - 2022 | iOS 开发栈</p>
+</footer>
+
+    </main>
+    <section id="category-modal-bg"></section>
+<section id="category-modal">
+  <h1 id="category-modal-title"></h1>
+  <section id="category-modal-content"></section>
+</section>
+
+  </body>
+</html>
+

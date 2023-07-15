@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iOS 开发栈 | 解密SwiftUI中@ViewBuilder的黑暗魔法</title>
+  
+  <link rel="stylesheet" href="/assets/css/post.css" />
+  <link rel="stylesheet" href="/assets/css/syntax.css" />
+  
+  <link rel="stylesheet" href="/assets/css/common.css" />
+  <script src="/assets/js/categories.js"></script>
+  
+  <script defer src="/assets/js/lbox.js"></script>
+  
+</head>
+
+  <body>
+    <main>
+      <header>
+  <a class="site-title" href="/">iOS 开发栈</a>
+</header>
+
+      <section class="article">
+        <div class="article-header">
+          <h2 class="article-title">解密SwiftUI中@ViewBuilder的黑暗魔法</h2>
+          <small class="date">04 Jul 2021</small>
+        </div>
+        <div class="content"><p>在SwiftUI框架中使用很多的注解，虽然使语法看上去非常简洁，但是增加了初学者的理解难度，这篇文章我们来看一下<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>的相关知识。主要包括以下内容：</p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">resultBuilder</code>/<code class="language-plaintext highlighter-rouge">functionBuilder</code>是什么以及用法</li>
+  <li><code class="language-plaintext highlighter-rouge">ViewBuilder</code>结构体</li>
+  <li><code class="language-plaintext highlighter-rouge">@ViewBuilder</code>修饰符的用法</li>
+  <li>
+    <p>使用<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>完成一个自定义视图
+<!-- more -->
+在SwiftUI框架中使用很多的注解，虽然使语法看上去非常简洁，但是增加了初学者的理解难度，这篇文章我们来看一下<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>的相关知识。主要包括以下内容：</p>
+  </li>
+  <li><code class="language-plaintext highlighter-rouge">resultBuilder</code>/<code class="language-plaintext highlighter-rouge">functionBuilder</code>是什么以及用法</li>
+  <li><code class="language-plaintext highlighter-rouge">ViewBuilder</code>结构体</li>
+  <li><code class="language-plaintext highlighter-rouge">@ViewBuilder</code>修饰符的用法</li>
+  <li>使用<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>完成一个自定义视图</li>
+</ol>
+
+<p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+
+<h1 id="resultbuilder注解"><a href="#resultBuilder注解" title="@resultBuilder注解"></a><code class="language-plaintext highlighter-rouge">@resultBuilder</code>注解</h1>
+
+<p><code class="language-plaintext highlighter-rouge">@resultBuilder</code>是在Swift5.4添加的，之前是叫<code class="language-plaintext highlighter-rouge">@_functionBuilder</code>，在这里我们可以简单了解一下它的作用。</p>
+
+<p>一个类、结构体添加<code class="language-plaintext highlighter-rouge">@resultBuilder</code>注解时必须包含至少一个<code class="language-plaintext highlighter-rouge">buildBlock</code>方法，并且这个方法是<code class="language-plaintext highlighter-rouge">static</code>静态的。这个方法可以接收0个或多个参数，在函数内部确定了参数的组成形式。</p>
+
+<p>比如下面这个例子：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@resultBuilder struct StringBuilder {  
+  static func buildBlock(_ string1: String, _ string2: String, _ string3: String) -&gt; String {  
+    string1 + " - " + string2 + " - " + string3  
+  }  
+}  
+  
+func test(@StringBuilder strings: () -&gt; String) {  
+  print(strings())  
+}  
+  
+test {  
+  "1"  
+  "2"  
+  "3"  
+}  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">StringBuilder</code>是一个字符串构建者结构体，里面的<code class="language-plaintext highlighter-rouge">buildBlock</code>方法接收3个参数，并且在3个参数中间插入” - “作为函数的返回值。</p>
+
+<p><code class="language-plaintext highlighter-rouge">test</code>函数接收一个使用<code class="language-plaintext highlighter-rouge">@StringBuilder</code>修饰的名为<code class="language-plaintext highlighter-rouge">strings</code>的闭包作为参数，函数体是调用这个闭包并打印到控制台。</p>
+
+<p>最后使用3个字符串作为参数调用<code class="language-plaintext highlighter-rouge">test</code>函数，执行这段代码后会得到”1 - 2 - 3”的输出结果</p>
+
+<h1 id="viewbuilder定义"><a href="#ViewBuilder定义" title="@ViewBuilder定义"></a><code class="language-plaintext highlighter-rouge">@ViewBuilder</code>定义</h1>
+
+<p>先来看<code class="language-plaintext highlighter-rouge">ViewBuilder</code>的定义：</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@resultBuilder struct ViewBuilder  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">ViewBuilder</code>本质上是一个结构体，并且被<code class="language-plaintext highlighter-rouge">@resultBuilder</code>注解，也就是说<code class="language-plaintext highlighter-rouge">ViewBuilder</code>是一个reult builder（结果建造者）类型了。</p>
+
+<p><code class="language-plaintext highlighter-rouge">ViewBuilder</code>结构体有11个名为<code class="language-plaintext highlighter-rouge">buildBlock</code>的函数，分别接收从0到10个<code class="language-plaintext highlighter-rouge">View</code>类型的参数，因此在SwiftUI中一个接收<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>类型参数的视图容器最多能接收10个子视图，如果不能满足需求可以通过拆分来增加子视图的个数。</p>
+
+<h1 id="viewbuilder的用法"><a href="#ViewBuilder的用法" title="@ViewBuilder的用法"></a><code class="language-plaintext highlighter-rouge">@ViewBuilder</code>的用法</h1>
+
+<p>使用<code class="language-plaintext highlighter-rouge">@resultBuilder</code>注解<code class="language-plaintext highlighter-rouge">ViewBuilder</code>结构体后，就可以用<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>修饰闭包，这个闭包可以接收多个指定类型的对象，而这些对象会按照<code class="language-plaintext highlighter-rouge">buildBlock</code>函数的实现进行组织。</p>
+
+<blockquote>
+  <p>A custom parameter attribute that constructs views from closures.</p>
+</blockquote>
+
+<p>这是Apple的官方文档对ViewBuilder的定义，简单来说ViewBuilder就是一个包含多个视图的闭包。</p>
+
+<p>在SwiftUI框架中，所有的容器视图都是使用<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>来修饰最后一个参数，因此这些容器视图可以接受多个子视图作为参数。比如<code class="language-plaintext highlighter-rouge">HStack</code>/<code class="language-plaintext highlighter-rouge">VStack</code>/<code class="language-plaintext highlighter-rouge">ScrollView</code>等。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// HStack  
+public struct HStack&lt;Content&gt; : View where Content : View {  
+ ...  
+  
+  @inlinable public init(alignment: VerticalAlignment = .center, spacing: CGFloat? = nil, @ViewBuilder content: () -&gt; Content)  
+  
+  ...  
+}  
+</code></pre></div></div>
+<p>这是<code class="language-plaintext highlighter-rouge">HStack</code>的初始化方法，其中前面的几个参数都是可选项，它们不在本篇文章的讨论范围内。</p>
+
+<p>它的最后一个参数<code class="language-plaintext highlighter-rouge">content</code>的类型是一个返回值为Content的闭包，单看<code class="language-plaintext highlighter-rouge">()-&gt;Content</code>是一个没有参数的闭包，但是前面使用了<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>修饰，这就是一个可以接收多个视图的闭包了，最终看起来像是这样的：<code class="language-plaintext highlighter-rouge">(view1: Content, view2: Content....) -&gt; Content</code>。</p>
+
+<p>下面我们通过自定义一个视图来看<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>的用法。</p>
+
+<h1 id="实践"><a href="#实践" title="实践"></a>实践</h1>
+
+<p>下面通过实现一个自定义的容器视图来展示<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>的用法：</p>
+
+<p><img src="../../images/viewbuilder/containerview.png" alt="@ViewBuilder示例" /></p>
+
+<p>自定义一个继承自<code class="language-plaintext highlighter-rouge">View</code>名为<code class="language-plaintext highlighter-rouge">CustomContainerView</code>的视图，它仅有一个接收<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>类型参数的初始化方法，并使用常量<code class="language-plaintext highlighter-rouge">content</code>接收这个参数。</p>
+
+<p>在<code class="language-plaintext highlighter-rouge">body</code>中构建当前视图：<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>中可能包含多个子视图，因此使用<code class="language-plaintext highlighter-rouge">VStack</code>把这些子视图纵向排列，之后使用多个<a href="https://www.iosprogrammer.tech/swiftui/swiftui-concept-essential/#Modifer">视图修改器</a>自定义子视图的外观。</p>
+
+<p>在源文件的第29行，<code class="language-plaintext highlighter-rouge">ContentView</code>中创建了<code class="language-plaintext highlighter-rouge">CustomContainerView</code>并给它传递了3个<code class="language-plaintext highlighter-rouge">Text</code>子视图。通过Xcode右侧的即时预览可以看到这三个子视图正是以我们在<code class="language-plaintext highlighter-rouge">CustomContainerView</code>中要求的方式展现出来——纵向排列、绿色的背景色、红色的文字颜色等。</p>
+
+<p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>至此，关于<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>的相关知识基本都涉及到了，相信通过本篇文章的学习你一定也对它有了一个非常全面的掌握，那么赶快到实战项目中用起来吧👍。</p>
+</div>
+      </section>
+      <footer>
+  <p>&copy; 1947 - 2022 | iOS 开发栈</p>
+</footer>
+
+    </main>
+    <section id="category-modal-bg"></section>
+<section id="category-modal">
+  <h1 id="category-modal-title"></h1>
+  <section id="category-modal-content"></section>
+</section>
+
+  </body>
+</html>
+

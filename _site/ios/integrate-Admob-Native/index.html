@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iOS 开发栈 | iOS集成Admob的Native广告</title>
+  
+  <link rel="stylesheet" href="/assets/css/post.css" />
+  <link rel="stylesheet" href="/assets/css/syntax.css" />
+  
+  <link rel="stylesheet" href="/assets/css/common.css" />
+  <script src="/assets/js/categories.js"></script>
+  
+  <script defer src="/assets/js/lbox.js"></script>
+  
+</head>
+
+  <body>
+    <main>
+      <header>
+  <a class="site-title" href="/">iOS 开发栈</a>
+</header>
+
+      <section class="article">
+        <div class="article-header">
+          <h2 class="article-title">iOS集成Admob的Native广告</h2>
+          <small class="date">03 Jan 2022</small>
+        </div>
+        <div class="content"><p>Admob广告分为banner、插屏、激励和原生，其中原生广告的集成过程是最复杂的，并且完全按照官方文档或者官方的示例程序是无法成功的，所以有必要把我的集成方法分享给大家。
+<!-- more --></p>
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<p><img src="../../images/admob-native/cover.png" alt="" /></p>
+
+<blockquote>
+  <p>以下内容基于<code class="language-plaintext highlighter-rouge">Google-Mobile-Ads-SDK</code>的8.9.0版本。如果不适用于你的版本可以联系我，一块讨论解决。</p>
+</blockquote>
+
+<h1 id="admob原生广告"><a href="#Admob原生广告" title="Admob原生广告"></a>Admob原生广告</h1>
+
+<p>原生广告是一种可以自定义广告样式的广告形式，通过集成原生广告可以根据自己App的已有UI来选择广告的样式，使广告能够跟App尽量融合在一起，减少割裂感，进而减少广告对用户的打扰。这种自定义外观的功能是其他形式的广告所不具备的。</p>
+
+<p>想要集成原生广告总体来说需要进行两步操作：一是自定义广告的界面，二是通过SDK获取广告的数据。</p>
+
+<h1 id="获取原生广告数据"><a href="#获取原生广告数据" title="获取原生广告数据"></a>获取原生广告数据</h1>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>let nativeAdOptions = GADNativeAdViewAdOptions()  
+nativeAdOptions.preferredAdChoicesPosition = .bottomLeftCorner;  
+let adLoader = GADAdLoader(adUnitID: "ca-app-pub-3940256099942544/3986624511", rootViewController: self, adTypes: [.native],  
+ options: [nativeAdOptions])  
+adLoader.delegate = self  
+adLoader.load(GADRequest())  
+</code></pre></div></div>
+<h1 id="原生广告加载回调"><a href="#原生广告加载回调" title="原生广告加载回调"></a>原生广告加载回调</h1>
+
+<p><code class="language-plaintext highlighter-rouge">GADAdLoader</code>对象的<code class="language-plaintext highlighter-rouge">delegate</code>需要遵守<code class="language-plaintext highlighter-rouge">GADNativeAdLoaderDelegate</code>代理，这个代理遵守了<code class="language-plaintext highlighter-rouge">GADAdLoaderDelegate</code>代理，因此这两个代理中的回调都可以用。其中：</p>
+
+<p><code class="language-plaintext highlighter-rouge">GADAdLoaderDelegate</code>代理中的<code class="language-plaintext highlighter-rouge">adLoader:didReceiveNativeAd:</code>表示原生广告加载完成。</p>
+
+<p><code class="language-plaintext highlighter-rouge">GADAdLoaderDelegate</code>中的<code class="language-plaintext highlighter-rouge">adLoader:didFailToReceiveAdWithError:</code>表示广告加载失败。</p>
+
+<p>在Admob的文档中提到尽量不要在加载失败的回调中重试，不过我认为这里指的是不要立即重试，在实际开发过程中可以根据业务需求采取间隔一定时间后重试。</p>
+
+<p>在成功的回调中需要把界面和获取到的数据进行绑定，下面有详细的步骤。</p>
+
+<h1 id="自定义原生广告样式"><a href="#自定义原生广告样式" title="自定义原生广告样式"></a>自定义原生广告样式</h1>
+
+<p>根据Admob文档的描述，可以通过xib的形式来自定义原生广告样式。可以通过查看<code class="language-plaintext highlighter-rouge">GADNativeAdView</code>类确定原生广告支持的组件类型和个数，里面大多数都是用的<code class="language-plaintext highlighter-rouge">UIView</code>不过在实际过程中需要区分<code class="language-plaintext highlighter-rouge">UILabel</code>/<code class="language-plaintext highlighter-rouge">UIImageView</code>或者<code class="language-plaintext highlighter-rouge">UIButton</code>。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>实际类型</th>
+      <th>字段名</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>UILabel</td>
+      <td><code class="language-plaintext highlighter-rouge">headlineView</code> <code class="language-plaintext highlighter-rouge">bodyView</code> <code class="language-plaintext highlighter-rouge">storeView</code> <code class="language-plaintext highlighter-rouge">priceView</code> <code class="language-plaintext highlighter-rouge">advertiserView</code></td>
+    </tr>
+    <tr>
+      <td>UIButton</td>
+      <td>callToActionView</td>
+    </tr>
+    <tr>
+      <td>UIImageView</td>
+      <td>iconView imageView starRatingView</td>
+    </tr>
+    <tr>
+      <td>GADMediaView</td>
+      <td>mediaView</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>根据UI需求完成xib的布局：</p>
+
+<p><img src="../../images/admob-native/xib.png" alt="" /></p>
+
+<p>并把这个xib文件命名为：AdmobNative.xib。</p>
+
+<p>截止到这里你会发现我们并没有创建类文件，那是因为Admob的SDK里已经有这样的类文件了，我们需要做的就是把这个xib文件和已经存在的类文件关联起来，也就是“连上线”。</p>
+
+<h1 id="xib文件关联类"><a href="#xib文件关联类" title="xib文件关联类"></a>xib文件关联类</h1>
+
+<p>如果按照官方文档的描述，可以直接把刚刚创建的xib文件和Admob库里面<code class="language-plaintext highlighter-rouge">GADNativeAd.h</code>文件中的<code class="language-plaintext highlighter-rouge">GADNativeAdView</code>类进行关联，而这个类中属性也都是<code class="language-plaintext highlighter-rouge">IBOutlet</code>的，但是当你这么做的时候发现并不能连上线，无法进行关联。</p>
+
+<p>之所以出现这种情况是因为官方文档过时了，<code class="language-plaintext highlighter-rouge">Google-Mobile-Ads-SDK</code>库在之前是<code class="language-plaintext highlighter-rouge">framework</code>的形式，而现在改成了<code class="language-plaintext highlighter-rouge">xcframework</code>。</p>
+
+<p>所以要想进行连线就得另辟蹊径了。</p>
+
+<p>我们都知道，OC的.h和.m文件类似C语言的.h和.m，具体来说就是.h文件只是接口声明，它的作用就是让编译器不报错，而在实际运行时还是要看.m文件中是否确实有该方法或者变量。</p>
+
+<p>作为仅有声明作用的<code class="language-plaintext highlighter-rouge">.h</code>文件，我们是可以随便创建的，只要声明的内容在.m文件里有实现就可以了。那么我们就可以<strong>把<code class="language-plaintext highlighter-rouge">Google-Mobile-Ads-SDK</code>中<code class="language-plaintext highlighter-rouge">GADNativeAd.h</code>文件拷贝一份到自己的项目里</strong>。</p>
+
+<p>把<code class="language-plaintext highlighter-rouge">GADNativeAd.h</code>文件原封不动的拷贝到自己的项目中后，就可以随心所欲的进行连线了。</p>
+
+<p>把xib中的界面和类文件里的属性关联以后，就可以把请求到的广告内容显示到界面上了。</p>
+
+<h1 id="显示获取到的广告数据"><a href="#显示获取到的广告数据" title="显示获取到的广告数据"></a>显示获取到的广告数据</h1>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// Mark: - GADNativeAdLoaderDelegate  
+func adLoader(_ adLoader: GADAdLoader, didReceive nativeAd: GADNativeAd) {  
+ print("Received native ad: (nativeAd)")  
+ refreshAdButton.isEnabled = true  
+ // Create and place ad in view hierarchy.  
+ let nibView = Bundle.main.loadNibNamed("NativeAdView", owner: nil, options: nil)?.first  
+ guard let nativeAdView = nibView as? GADNativeAdView else {  
+ return  
+ }  
+ setAdView(nativeAdView)  
+  
+ // Set ourselves as the native ad delegate to be notified of native ad events.  
+ nativeAd.delegate = self  
+  
+ // Populate the native ad view with the native ad assets.  
+ // The headline and mediaContent are guaranteed to be present in every native ad.  
+ (nativeAdView.headlineView as? UILabel)?.text = nativeAd.headline  
+ nativeAdView.mediaView?.mediaContent = nativeAd.mediaContent  
+  
+ // This app uses a fixed width for the GADMediaView and changes its height to match the aspect  
+ // ratio of the media it displays.  
+ if let mediaView = nativeAdView.mediaView, nativeAd.mediaContent.aspectRatio &gt; 0 {  
+ let heightConstraint = NSLayoutConstraint(  
+ item: mediaView,  
+ attribute: .height,  
+ relatedBy: .equal,  
+ toItem: mediaView,  
+ attribute: .width,  
+ multiplier: CGFloat(1 / nativeAd.mediaContent.aspectRatio),  
+ constant: 0)  
+ heightConstraint.isActive = true  
+ }  
+  
+ // These assets are not guaranteed to be present. Check that they are before  
+ // showing or hiding them.  
+ (nativeAdView.bodyView as? UILabel)?.text = nativeAd.body  
+ nativeAdView.bodyView?.isHidden = nativeAd.body == nil  
+  
+ (nativeAdView.callToActionView as? UIButton)?.setTitle(nativeAd.callToAction, for: .normal)  
+ nativeAdView.callToActionView?.isHidden = nativeAd.callToAction == nil  
+  
+ (nativeAdView.iconView as? UIImageView)?.image = nativeAd.icon?.image  
+ nativeAdView.iconView?.isHidden = nativeAd.icon == nil  
+  
+ (nativeAdView.starRatingView as? UIImageView)?.image = imageOfStars(  
+ fromStarRating: nativeAd.starRating)  
+ nativeAdView.starRatingView?.isHidden = nativeAd.starRating == nil  
+  
+ (nativeAdView.storeView as? UILabel)?.text = nativeAd.store  
+ nativeAdView.storeView?.isHidden = nativeAd.store == nil  
+  
+ (nativeAdView.priceView as? UILabel)?.text = nativeAd.price  
+ nativeAdView.priceView?.isHidden = nativeAd.price == nil  
+  
+ (nativeAdView.advertiserView as? UILabel)?.text = nativeAd.advertiser  
+ nativeAdView.advertiserView?.isHidden = nativeAd.advertiser == nil  
+  
+ // In order for the SDK to process touch events properly, user interaction should be disabled.  
+ nativeAdView.callToActionView?.isUserInteractionEnabled = false  
+  
+ // Associate the native ad view with the native ad object. This is  
+ // required to make the ad clickable.  
+ // Note: this should always be done after populating the ad views.  
+ nativeAdView.nativeAd = nativeAd  
+}  
+</code></pre></div></div>
+<p>其中有两点需要注意：一是通过设置<code class="language-plaintext highlighter-rouge">nativeAdView.callToActionView?.isUserInteractionEnabled = false</code>来使用户可以通过点击按钮跳转到App Store或者广告主的网站，二是<code class="language-plaintext highlighter-rouge">nativeAdView.nativeAd = nativeAd</code>来把数据和界面进行关联，只有这样广告的元素才会响应用户点击执行跳转。</p>
+
+<h1 id="广告视图事件处理"><a href="#广告视图事件处理" title="广告视图事件处理"></a>广告视图事件处理</h1>
+
+<p>上面的<code class="language-plaintext highlighter-rouge">nativeAd.delegate = self</code>可以让当前类获取到广告视图的事件回调，比如点击、跳转、展示等，具体可以查看<code class="language-plaintext highlighter-rouge">GADNativeAdDelegate</code>。其中有一点需要注意的是<code class="language-plaintext highlighter-rouge">nativeAdDidRecordImpression:</code>和<code class="language-plaintext highlighter-rouge">nativeAdDidRecordClick:</code>回调仅对Admob自家的广告有效，也就是说如果通过Admob聚合其他广告商的原生广告是无法获取到这两个回调事件的。</p>
+
+<p>至此，集成Admob原生广告的工作就结束了。👍</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>通过这篇文章我们对Admob原生广告的集成过程有了一个全面的了解，并且对一些官方文档的过时内容也进行了更正处理，相信你现在可以处理接入Admob原生广告的需求了，那么动手开始吧。</p>
+</div>
+      </section>
+      <footer>
+  <p>&copy; 1947 - 2022 | iOS 开发栈</p>
+</footer>
+
+    </main>
+    <section id="category-modal-bg"></section>
+<section id="category-modal">
+  <h1 id="category-modal-title"></h1>
+  <section id="category-modal-content"></section>
+</section>
+
+  </body>
+</html>
+

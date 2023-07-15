@@ -1,0 +1,128 @@
+I"�$<p>作为一门非常强调类型安全的语言，为了让程序员尽量少犯错误，Swift在编译时会进行尽量多的类型检查，因此在设计之初就决定了Swift不能像其他某些语言（比如Objective-C）一样具有很强的动态特性。这篇文章要说的<code class="language-plaintext highlighter-rouge">KeyPath</code>就是为了类型安全而生的特性之一。</p>
+
+<p>下面主要包括这几个方面的内容：</p>
+
+<ol>
+  <li>Keypath是什么</li>
+  <li>KeyPath的作用，也就是为什么要使用Keypath</li>
+  <li>KeyPath的使用示例
+<!-- more -->
+作为一门非常强调类型安全的语言，为了让程序员尽量少犯错误，Swift在编译时会进行尽量多的类型检查，因此在设计之初就决定了Swift不能像其他某些语言（比如Objective-C）一样具有很强的动态特性。这篇文章要说的<code class="language-plaintext highlighter-rouge">KeyPath</code>就是为了类型安全而生的特性之一。</li>
+</ol>
+
+<p>下面主要包括这几个方面的内容：</p>
+
+<ol>
+  <li>Keypath是什么</li>
+  <li>KeyPath的作用，也就是为什么要使用Keypath</li>
+  <li>KeyPath的使用示例</li>
+</ol>
+
+<p><img src="../images/first/swift-keypath.png" alt="" /></p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多Swift、SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="keypath是什么"><a href="#KeyPath是什么" title="KeyPath是什么"></a>KeyPath是什么</h1>
+
+<p>首先来看<code class="language-plaintext highlighter-rouge">KeyPath</code>的定义：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>class KeyPath&lt;Root, Value&gt;  
+</code></pre></div></div>
+<p>根据这个定义可以得知<code class="language-plaintext highlighter-rouge">KeyPath</code>实际是一个类，也就是说当我们看到某个函数参数声明类似<code class="language-plaintext highlighter-rouge">func test(param: KeyPath&lt;Any, Any&gt;)</code>时，其实只是说<code class="language-plaintext highlighter-rouge">param</code>参数是<code class="language-plaintext highlighter-rouge">KeyPath</code>类型的。</p>
+
+<p>具体来说，<code class="language-plaintext highlighter-rouge">KeyPath</code>类型是一个包含两个范型的类型，这两个范型可能用在类的变量里，也可能用在方法的参数里，至于这两个范型具体是怎么使用的我们由于看不到源码就不得而知了。</p>
+
+<blockquote>
+  <p>A key path from a specific root type to a specific resulting value type.</p>
+</blockquote>
+
+<p>这是Apple官方文档给的定义，key path从根类型到结果值类型。</p>
+
+<p>单从这个定义理解是挺晦涩的，下面让我们理解一下它的意思。</p>
+
+<h1 id="keypath的作用"><a href="#KeyPath的作用" title="KeyPath的作用"></a>KeyPath的作用</h1>
+
+<p>让我们写一个公众号的类并且创建iOS开发栈的实例：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>struct OfficialAccount {  
+ var name: String  
+ var fans: Int  
+}  
+  
+let iosDev = OfficialAccount(name: "ios开发栈", fans: 500)  
+</code></pre></div></div>
+<p>上面新建了一个名为<code class="language-plaintext highlighter-rouge">OfficialAccount</code>的公众号类，并创建了一个<code class="language-plaintext highlighter-rouge">iosDev</code>的实例。</p>
+
+<p>如果我要获取iosDev有多少个粉丝，第一种方法是通过<code class="language-plaintext highlighter-rouge">iosDev.fans</code>，除此之外还可以用KeyPath来获取属性值：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>iosDev[keyPath: OfficialAccount.fans]  
+</code></pre></div></div>
+<p>熟悉OC的同学应该对这个用法很熟悉，在OC中是这样使用的：<code class="language-plaintext highlighter-rouge">[iosDev valueForKey:@"fans"]</code>，如果经常这样用肯定也遇到过这个用法导致的程序崩溃[ valueForUndefinedKey:]: this class is not key value coding-compliant for the key fans1。</p>
+
+<p>没错Swift中的KeyPath正是为了解决OC这个问题的，正因为有了KeyPath，在Swift中就不需要使用一个字符串来直接访问一个对象，也就避免了UndefinedKey问题。</p>
+
+<p>另外，<code class="language-plaintext highlighter-rouge">KeyPath</code>也支持链式调用：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>struct Person {  
+ var nickName: String  
+ var age: Int  
+}  
+  
+struct OfficialAccount {  
+ var name: String  
+ var fans: Int  
+ var owner: Person  
+}  
+  
+var sza = Person(nickName: "施治昂", age: 30)  
+var iosDev = OfficialAccount(name: "ios开发栈", fans: 500, owner: sza)  
+iosDev[keyPath: .owner.nickName]  
+</code></pre></div></div>
+<p>新建一个<code class="language-plaintext highlighter-rouge">Person</code>类，它拥有姓名、年龄两个属性，公众号类增加<code class="language-plaintext highlighter-rouge">owner</code>拥有者属性。新建<code class="language-plaintext highlighter-rouge">Person</code>类示例sza作为iosDev公众号的拥有者。</p>
+
+<p>之后就可以通过<code class="language-plaintext highlighter-rouge">iosDev[keyPath: .owner.nickName]</code>来获取公众号拥有者的名字了，结果是施治昂。</p>
+
+<h1 id="keypath实践"><a href="#KeyPath实践" title="KeyPath实践"></a>KeyPath实践</h1>
+
+<p>Swift库提供了数组的排序方法<code class="language-plaintext highlighter-rouge">sorted</code>，比如:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>let arr = [3, 6, 5, 1]  
+let sortedArr = arr.sorted(by: &gt;)  
+print(sortedArr) // [6, 5, 3, 1]  
+</code></pre></div></div>
+<p>有了这个方法确实给开发者提供了很大的便利，但是如果要对<code class="language-plaintext highlighter-rouge">OfficialAccount</code>的数组排序这个方法就无能为力了。</p>
+
+<p>下面我们利用<code class="language-plaintext highlighter-rouge">KeyPath</code>给数组<code class="language-plaintext highlighter-rouge">Array</code>增加一个方法，来给<code class="language-plaintext highlighter-rouge">OfficialAccount</code>类型的数组排序：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>extension Array {  
+ func sorted&lt;Value&gt;(keyPath: KeyPath&lt;Element, Value&gt;, by areInIncreasingOrder: (Value, Value) throws -&gt; Bool) rethrows -&gt; [Element] {  
+ try sorted {  
+ try areInIncreasingOrder($0[keyPath: keyPath] , $1[keyPath: keyPath])  
+ }  
+ }  
+}  
+  
+var sza = Person(nickName: "施治昂", age: 30)  
+var iosDev = OfficialAccount(name: "ios开发栈", fans: 500, owner: sza)  
+var iosDev2 = OfficialAccount(name: "ios开发栈2", fans: 30, owner: sza)  
+let sorted = [iosDev, iosDev2].sorted(keyPath: .fans, by: &gt;)  
+print(sorted) // [__lldb_expr_32.OfficialAccount(name: "ios开发栈", fans: 500, owner: __lldb_expr_32.Person(nickName: "施治昂", age: 30)), __lldb_expr_32.OfficialAccount(name: "ios开发栈2", fans: 30, owner: __lldb_expr_32.Person(nickName: "施治昂", age: 30))]  
+</code></pre></div></div>
+<p>利用扩展给<code class="language-plaintext highlighter-rouge">Array</code>增加一个<code class="language-plaintext highlighter-rouge">sorted(keyPath:by areInIncreasingOrder:)</code>方法，这个方法中用到了两个范型类型，其中<code class="language-plaintext highlighter-rouge">Element</code>是标准库<code class="language-plaintext highlighter-rouge">Array</code>定义的表示数组中的元素类型（在Swift中数组元素类型相同）；另外新定义了一个范型<code class="language-plaintext highlighter-rouge">Value</code>用在<code class="language-plaintext highlighter-rouge">KeyPath</code>中。</p>
+
+<p>新增方法的实现完全是利用Swift标准库中的<code class="language-plaintext highlighter-rouge">sorted(by areInIncreasingOrder:)</code>方法，与上面对整数排序不同的是这里的两个元素用的是<code class="language-plaintext highlighter-rouge">$0[keyPath: keyPath]</code>和<code class="language-plaintext highlighter-rouge">$1[keyPath: keyPath]</code>。</p>
+
+<p>$0和$1表示的是用来比较的两个元素，这两个元素都是实例对象，通过<code class="language-plaintext highlighter-rouge">keyPath</code>把对象中的属性值取出来之后就满足了标准库中<code class="language-plaintext highlighter-rouge">sorted</code>函数定义。</p>
+
+<p>同理，我们也可以利用这个方法来进行嵌套类型的排序，比如按照公众号拥有着的年龄对多个公众号排序。</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多Swift、SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>这篇文章从概念到实战对<code class="language-plaintext highlighter-rouge">KeyPath</code>做了一个全面的讲解，相信你已经对这个概念有了一定的认识，其实这是Swift中一个非常强大功能，以后遇到了合适的场景就用起来吧。👍</p>
+:ET

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iOS 开发栈 | 汇编分析函数调用</title>
+  
+  <link rel="stylesheet" href="/assets/css/post.css" />
+  <link rel="stylesheet" href="/assets/css/syntax.css" />
+  
+  <link rel="stylesheet" href="/assets/css/common.css" />
+  <script src="/assets/js/categories.js"></script>
+  
+  <script defer src="/assets/js/lbox.js"></script>
+  
+</head>
+
+  <body>
+    <main>
+      <header>
+  <a class="site-title" href="/">iOS 开发栈</a>
+</header>
+
+      <section class="article">
+        <div class="article-header">
+          <h2 class="article-title">汇编分析函数调用</h2>
+          <small class="date">19 Dec 2021</small>
+        </div>
+        <div class="content"><p>通过对汇编的分析可以了解程序的执行本质，对分析问题有很大的帮助，尤其在无法阅读源码的情况下更加有用。最近我刚阅读了《深入理解计算机系统（CSAPP）》的第三章，这一章主要讲解汇编的知识。为了对自己的学习有一个总结，并且给对汇编不甚了解的同学一点启发，所以有了这篇关于汇编的文章。</p>
+
+<p>通过分析函数调用过程可以了解整个汇编的全貌，并且对实际的编程工作也有最大的作用。所以，让我们从一个简单的递归调用函数进入汇编的世界吧。
+<!-- more -->
+通过对汇编的分析可以了解程序的执行本质，对分析问题有很大的帮助，尤其在无法阅读源码的情况下更加有用。最近我刚阅读了《深入理解计算机系统（CSAPP）》的第三章，这一章主要讲解汇编的知识。为了对自己的学习有一个总结，并且给对汇编不甚了解的同学一点启发，所以有了这篇关于汇编的文章。</p>
+
+<p>通过分析函数调用过程可以了解整个汇编的全貌，并且对实际的编程工作也有最大的作用。所以，让我们从一个简单的递归调用函数进入汇编的世界吧。</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<p><img src="../../images/first/assemb-recurse-call.png" alt="" /></p>
+
+<h1 id="c语言表示"><a href="#C语言表示" title="C语言表示"></a>C语言表示</h1>
+
+<p>用C语言计算0到20的整数之和：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &lt;stdio.h&gt;  
+  
+int add(int start, int max) {  
+ if (start == max) {  
+ return max;  
+ }  
+ return start + add(start + 1, max);  
+}  
+  
+int main(int argc, char const *argv[])  
+{  
+ int result = add(0, 20);  
+ printf("result = %d\n", result);  
+ return 0;  
+}
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">add</code>是一个递归函数，用来计算<code class="language-plaintext highlighter-rouge">start</code>到<code class="language-plaintext highlighter-rouge">max</code>的整数之和。<code class="language-plaintext highlighter-rouge">main</code>函数中调用<code class="language-plaintext highlighter-rouge">add</code>函数计算0到20的和，并输出到控制台。</p>
+
+<p>把上面的代码保存到文件<code class="language-plaintext highlighter-rouge">recursion.c</code>文件。</p>
+
+<h1 id="生成汇编"><a href="#生成汇编" title="生成汇编"></a>生成汇编</h1>
+
+<p>通过gcc生成汇编:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>gcc -S recursion.c  
+</code></pre></div></div>
+<p>执行上面命令，获取到的汇编如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>_add:                                   ## @add  
+pushq%rbp  
+movq%rsp, %rbp  
+subq$16, %rsp  
+movl%edi, -8(%rbp)  
+movl%esi, -12(%rbp)  
+movl-8(%rbp), %eax  
+cmpl-12(%rbp), %eax  
+jneLBB0_2  
+movl-12(%rbp), %eax  
+movl%eax, -4(%rbp)  
+jmpLBB0_3  
+LBB0_2:  
+movl-8(%rbp), %eax  
+movl%eax, -16(%rbp)                 ## 4-byte Spill  
+movl-8(%rbp), %edi  
+addl$1, %edi  
+movl-12(%rbp), %esi  
+callq_add  
+movl%eax, %ecx  
+movl-16(%rbp), %eax                 ## 4-byte Reload  
+addl%ecx, %eax  
+movl%eax, -4(%rbp)  
+LBB0_3:  
+movl-4(%rbp), %eax  
+addq$16, %rsp  
+popq%rbp  
+retq  
+_main:                                  ## @main  
+pushq%rbp  
+movq%rsp, %rbp  
+subq$32, %rsp  
+movl%edi, %eax  
+xorl%edi, %edi  
+movl$0, -4(%rbp)  
+movl%eax, -8(%rbp)  
+movq%rsi, -16(%rbp)  
+movl$20, %esi  
+callq_add  
+movl%eax, -20(%rbp)  
+movl-20(%rbp), %esi  
+leaqL_.str(%rip), %rdi  
+movb$0, %al  
+callq_printf  
+xorl%eax, %eax  
+addq$32, %rsp  
+popq%rbp  
+retq
+</code></pre></div></div>
+
+<p>上面的内容是精简过的，去掉了一些说明性的内容，对实际的效果没有任何影响。</p>
+
+<p><code class="language-plaintext highlighter-rouge">_add</code>和<code class="language-plaintext highlighter-rouge">_main</code>标签表示函数段开始，<code class="language-plaintext highlighter-rouge">LBB0_2</code>和<code class="language-plaintext highlighter-rouge">LBB0_3</code>是汇编语言生成的标签，用来进行跳转；剩下的都是汇编指令。</p>
+
+<h1 id="main函数"><a href="#main函数" title="main函数"></a>main函数</h1>
+
+<p><code class="language-plaintext highlighter-rouge">main</code>函数我们只看和<code class="language-plaintext highlighter-rouge">add</code>函数有关的部分：</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>_main:  
+...  
+xorl%edi, %edi  
+movl$0, -4(%rbp)  
+movl$20, %esi  
+callq_add  
+...  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">xorl %edi, %edi</code>用来把edi寄存器的值设为0，其中<code class="language-plaintext highlighter-rouge">xor</code>表示异或操作，而两个相同的数异或的值等于0，而<code class="language-plaintext highlighter-rouge">xorl</code>中的<code class="language-plaintext highlighter-rouge">l</code>表示整数。</p>
+
+<p><code class="language-plaintext highlighter-rouge">movl $0, -4(%rbp)</code>——rbp-4表示一个内存地址，<code class="language-plaintext highlighter-rouge">movl</code>表示把整数0移动到内存rbp-4。</p>
+
+<p><code class="language-plaintext highlighter-rouge">movl $20, %esi</code>——把20放到esi寄存器中。</p>
+
+<p><code class="language-plaintext highlighter-rouge">call</code>表示函数调用，<code class="language-plaintext highlighter-rouge">_add</code>是C语言中add函数的汇编标签。</p>
+
+<h1 id="add函数"><a href="#add函数" title="add函数"></a>add函数</h1>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>movl%edi, -8(%rbp)  
+movl%esi, -12(%rbp)  
+movl-8(%rbp), %eax  
+</code></pre></div></div>
+<p>通过上面main函数的分析得知edi寄存器中保存的整数0，esi寄存器中放的是整数20。而通过1、3行<code class="language-plaintext highlighter-rouge">movl</code>操作后，把0放到了eax寄存器中；第2行中把20放到了内存地址rbp-12。</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cmpl-12(%rbp), %eax  
+jneLBB0_2  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">cmp</code>是英文单词compare的缩写，也就是比较的意思。因此第1行是比较内存地址rbp-12和寄存器eax中的值。<code class="language-plaintext highlighter-rouge">j</code>是<code class="language-plaintext highlighter-rouge">jump</code>的缩写，<code class="language-plaintext highlighter-rouge">ne</code>是<code class="language-plaintext highlighter-rouge">not equal</code>的缩写，<code class="language-plaintext highlighter-rouge">jne</code>表示如果不想等就跳转，而跳转的目的是<code class="language-plaintext highlighter-rouge">LBB0_2</code>标签。</p>
+
+<p>而在整个<code class="language-plaintext highlighter-rouge">add</code>函数的递归过程中，之前几次都是不想等的，那我们继续看不相等的时候跳转到<code class="language-plaintext highlighter-rouge">LBB0_2</code>段。</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>movl-8(%rbp), %eax  
+movl%eax, -16(%rbp)                 ## 4-byte Spill  
+movl-8(%rbp), %edi  
+addl$1, %edi  
+movl-12(%rbp), %esi  
+callq_add  
+</code></pre></div></div>
+<p>第6行的又调用了<code class="language-plaintext highlighter-rouge">add</code>函数，而第4行、第5行是准备函数参数。</p>
+
+<p><code class="language-plaintext highlighter-rouge">addl $1, %edi</code>——edi寄存器中的值加1后放回edi寄存器。</p>
+
+<p>从上面的分析可以看出edi和esi两个寄存器用做参数传递。</p>
+
+<p>整个递归过程是通过使用<code class="language-plaintext highlighter-rouge">jne</code>命令比较两个整数的大小，如果不想等就跳转到<code class="language-plaintext highlighter-rouge">LBB0_2</code>标签，而在这个标签中又重新回到了<code class="language-plaintext highlighter-rouge">add</code>函数最开始的地方。直到edi和esi中保存的两个整数相等为止。</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>movl-12(%rbp), %eax  
+movl%eax, -4(%rbp)  
+jmpLBB0_3  
+</code></pre></div></div>
+<p>esi和edi的值相等时，取出rbp-12内存地址中的值放入eax寄存器，再把eax寄存器的值放入rbp-4内存中。之后跳转到<code class="language-plaintext highlighter-rouge">LBB0_3</code>标签处。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>movl-4(%rbp), %eax  
+addq$16, %rsp  
+popq%rbp  
+retq  
+</code></pre></div></div>
+<p>第2行和第3行是还原函数调用栈——为了控制文章篇幅，省略这个知识点，有兴趣的话可以留言，以后再讲。</p>
+
+<p>第1行是把rbp-4内存中保存的内容放入eax，也就是把函数的返回值放入eax。——eax寄存器通常用来保存函数返回值。</p>
+
+<p>上面提到，edi寄存器存放start变量值，esi存放max变量值。这样就很容易可以得到，内存地址ebp-8和ebp-16中存放的是start变量，其中ebp-16只用来保存最新的start值；ebp-12存放的是max变量。</p>
+
+<p>这里有一个地方需要注意：ebp中存放的内存地址在整个递归过程中是不断变化的。递归过程实际是在不断的进行函数调用，每次进行函数调用都会产生新的调用栈，那就会更新ebp中存放的地址值。随着ebp中存放的地址值改变，每一个新的start值都被放到了不同的内存地址中。</p>
+
+<p>当结束条件（start == max）得到满足，递归结束。此时start的值等于max，调用跳转到LBB0_3中遇到了<code class="language-plaintext highlighter-rouge">ret</code>命令，当前的调用栈被返回，也就是继续执行<code class="language-plaintext highlighter-rouge">callq _add</code>下面的汇编代码。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>movl%eax, %ecx  
+movl-16(%rbp), %eax                 ## 4-byte Reload  
+addl%ecx, %eax  
+movl%eax, -4(%rbp)  
+</code></pre></div></div>
+<p>这里进行一些内容的交换之外，主要把最新的start值加上之前得到的start+max的和。而在这里由于没有跳转命令，所以会继续执行<code class="language-plaintext highlighter-rouge">LBB0_3</code>中的内容，进而不断的<code class="language-plaintext highlighter-rouge">ret</code>出栈。</p>
+
+<p>最终，把所有递归调用栈都ret完以后，最后一次的LBB0_3中的ret会返回到main函数中对add函数的调用处。</p>
+
+<p>整个递归调用完成。</p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>这篇文章通过对C语言中一个简单的递归调用过程的汇编代码进行分析，了解到递归调用的本质是jmp跳转命令和函数调用栈的结合使用。由于篇幅有限对函数栈、内存以及寄存器进行过多的分析，有兴趣的小伙伴可以直接去看《深入理解计算机系统》第三章，如果有兴趣可以留言，以后继续分析这方面的内容。</p>
+</div>
+      </section>
+      <footer>
+  <p>&copy; 1947 - 2022 | iOS 开发栈</p>
+</footer>
+
+    </main>
+    <section id="category-modal-bg"></section>
+<section id="category-modal">
+  <h1 id="category-modal-title"></h1>
+  <section id="category-modal-content"></section>
+</section>
+
+  </body>
+</html>
+

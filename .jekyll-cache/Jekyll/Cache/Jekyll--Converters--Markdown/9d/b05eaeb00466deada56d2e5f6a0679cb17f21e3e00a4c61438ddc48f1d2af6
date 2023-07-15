@@ -1,0 +1,140 @@
+I"�&<p>iOS项目国际化过程中对【名词复数】的处理方法和对其他文字的处理方法有些不同之处，这篇文章将从下面几个方面讲解一下项目中怎么处理名词复数。</p>
+
+<ol>
+  <li>什么不能像对其他语句一样对名词复数进行处理？</li>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">.stringsdict</code>文件的使用方法和说明
+<!-- more -->
+iOS项目国际化过程中对【名词复数】的处理方法和对其他文字的处理方法有些不同之处，这篇文章将从下面几个方面讲解一下项目中怎么处理名词复数。</p>
+  </li>
+  <li>什么不能像对其他语句一样对名词复数进行处理？</li>
+  <li><code class="language-plaintext highlighter-rouge">.stringsdict</code>文件的使用方法和说明</li>
+</ol>
+
+<p><img src="../../images/localize-noun-plural/first.png" alt="" /></p>
+
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="错误的名词复数处理方式"><a href="#错误的名词复数处理方式" title="错误的名词复数处理方式"></a>错误的名词复数处理方式</h1>
+
+<p>iOS项目国际化主要是对项目中用到的文字进行本地化语言处理，这个方面的知识在前面几篇文章都有涉及，比如<a href="https://www.iosprogrammer.tech/xcode/international-user-facing-text/">苹果官方的iOS App国际化工作流</a>、<a href="https://www.iosprogrammer.tech/xcode/language-internalization-ib/">使用Xib使App完成国际化功能</a>。</p>
+
+<p>普通文本可以大致看作1对1的翻译，比如说“iOS开发栈”-&gt;“iOS developers stack”，这种一对一的翻译通过<code class="language-plaintext highlighter-rouge">.strings</code>文件可以处理。</p>
+
+<p>名词复数的多语言处理是更加复杂的翻译，因为不同的语言对不同数量的表达方式都不一样。分别以英文、中文表达【iOS开发栈】公众号有几个粉丝为例：</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>名词</th>
+      <th>数量</th>
+      <th>英文</th>
+      <th>中文</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Fan</td>
+      <td>0</td>
+      <td>There is none fan</td>
+      <td>没有粉丝</td>
+    </tr>
+    <tr>
+      <td>Fan</td>
+      <td>1</td>
+      <td>There is one fan</td>
+      <td>有一个粉丝</td>
+    </tr>
+    <tr>
+      <td>Fan</td>
+      <td>n(n&gt;1)</td>
+      <td>There are n fans</td>
+      <td>有n个粉丝</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+  <p>不同语言对不同数量的表达可以参考<a href="https://unicode-org.github.io/cldr-staging/charts/latest/supplemental/language_plural_rules.html">Language Plural Rules</a></p>
+</blockquote>
+
+<p>如果要用<code class="language-plaintext highlighter-rouge">.strings</code>文件来处理名词复数的话，大概会写出这样的代码：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// 伪代码
+let fans = ...
+if fans == 0 {  
+ NSLocalizedString("zero fans number of my offical account", comment: "The Fans Number of 【ios开发栈】is zero")  
+} else if fans == 1 {  
+ NSLocalizedString("one fans number of my offical account", comment: "The Fans Number of 【ios开发栈】is one")
+} else {
+ NSLocalizedString("other fans number of my offical account", comment: "The Fans Number of 【ios开发栈】is other")
+}
+</code></pre></div></div>
+
+<p>如果每个用到名词复数的地方都这样写的话，项目中就会充斥着这种胶水代码，非常不利于维护。为了避免这种做法，我们可以利用Xcode自带的<code class="language-plaintext highlighter-rouge">.stringsdict</code>文件。</p>
+
+<h1 id="stringsdict"><a href="#stringsdict" title="stringsdict"></a>stringsdict</h1>
+
+<p><code class="language-plaintext highlighter-rouge">.stringsdict</code>文件就是专门用来处理名词复数的plist文件。</p>
+
+<h2 id="创建stringsdict文件"><a href="#创建-stringsdict文件" title="创建.stringsdict文件"></a>创建<code class="language-plaintext highlighter-rouge">.stringsdict</code>文件</h2>
+
+<p><img src="../../images/localize-noun-plural/create-stringsdict-1.png" alt="" /> <img src="../../images/localize-noun-plural/create-stringsdict-2.png" alt="" /> <img src="../../images/localize-noun-plural/create-stringsdict-3.png" alt="" /></p>
+
+<ol>
+  <li>在项目目录右击选择New File或者使用快捷键⌘+N</li>
+  <li>新建一个Stringsdict File,并命名为<code class="language-plaintext highlighter-rouge">Localizable.stringsdict</code></li>
+</ol>
+
+<h2 id="stringsdict文件解析"><a href="#stringsdict文件解析" title="stringsdict文件解析"></a><code class="language-plaintext highlighter-rouge">stringsdict</code>文件解析</h2>
+
+<p><img src="../../images/localize-noun-plural/empty-stringsdict.png" alt="空的stringsdict" /> <img src="../../images/localize-noun-plural/example-stringsdict.png" alt="公众号粉丝数stringdict" /></p>
+
+<p>左边是一个空的stringsdict文件，右边是用公众号粉丝数为例的stringsdict文件。</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">Localized String Key</code>是一个文字常量,用在<code class="language-plaintext highlighter-rouge">NSLocalizedString</code>宏里面用来匹配多语言翻译，如<code class="language-plaintext highlighter-rouge">NSLocalizedString("fans number of my official account", comment: "The Fans Number of 【ios开发栈】")</code>。项目中有多少个需要翻译的名词复数就要有多少个Localized String Key。</li>
+  <li><code class="language-plaintext highlighter-rouge">Localized Format Key</code>对应的是包含名词复数的句子，其中的数字和名词在<code class="language-plaintext highlighter-rouge">%#@</code>和<code class="language-plaintext highlighter-rouge">@</code>中间。</li>
+  <li><code class="language-plaintext highlighter-rouge">VARIABLE</code>用<code class="language-plaintext highlighter-rouge">%#@</code>和<code class="language-plaintext highlighter-rouge">@</code>之间的代替。这是一个键值对，内容就是VARIABLE在不同数量下的表示规则。
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">NSStringFormatSpecTypeKey</code> 指定复数规则的类型，固定为<code class="language-plaintext highlighter-rouge">NSStringPluralRuleType</code>表示复数规则类型。</li>
+      <li><code class="language-plaintext highlighter-rouge">NSStringFormatValueTypeKey</code> 用来表示不同的数字类型，比方说整型是%d，无符号整型%u，具体可以查看<a href="https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFStrings/formatSpecifiers.html#//apple_ref/doc/uid/TP40004265">String Format Specifiers</a></li>
+      <li><code class="language-plaintext highlighter-rouge">zero</code>/<code class="language-plaintext highlighter-rouge">one</code>/<code class="language-plaintext highlighter-rouge">two</code>/<code class="language-plaintext highlighter-rouge">few,many</code>/<code class="language-plaintext highlighter-rouge">other</code> 不同数量下名词复数的表现方式，有些语言只有其中几个比如汉语基本所有数量都可以用一种方式来表达（1个、2个、100个），英语有两种（one fan/many fans），更多的语言可以查看<a href="https://unicode-org.github.io/cldr-staging/charts/latest/supplemental/language_plural_rules.html">Language Plural Rules</a>。</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="实战经验"><a href="#实战经验" title="实战经验"></a>实战经验</h2>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">Localized Format Key</code>是一个语句，其中可以包含1个或1个以上的复数，每个都用<code class="language-plaintext highlighter-rouge">%#@</code>和<code class="language-plaintext highlighter-rouge">@</code>包围。</li>
+  <li>每增加一个需要翻译的名词复数就要增加一个<code class="language-plaintext highlighter-rouge">Localized String Key</code>。</li>
+  <li>设置<code class="language-plaintext highlighter-rouge">.stringsdict</code>文件的多语言
+    <ol>
+      <li>点击<code class="language-plaintext highlighter-rouge">Localizable.stringsdict</code>文件</li>
+      <li>点击右上角文件检视器，选中第一个选项<code class="language-plaintext highlighter-rouge">the File inspector</code></li>
+      <li>在Localization中增加、减少语言。</li>
+    </ol>
+  </li>
+</ol>
+
+<p><img src="../../images/localize-noun-plural/stringsdict-chinese.png" alt="中文" /> <img src="../../images/localize-noun-plural/stringsdict-english.png" alt="英文" /></p>
+
+<p>上面是在中英文下对_iOS开发栈有n个粉丝_和_iOS开发栈有n篇文章和m次分享_的翻译。对这两个翻译的使用方法如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>let fansNumLocalizableString = NSLocalizedString("fans num in my offical account", comment: "The Fans Number of 【ios开发栈】")  
+let fanNumStr = String.localizedStringWithFormat(fansNumLocalizableString, 3)  
+  
+let offcialAccountInfo = NSLocalizedString("official account info", comment: "")  
+let accountInfoStr = String.localizedStringWithFormat(offcialAccountInfo, 10, 5)  
+</code></pre></div></div>
+<blockquote>
+  <p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+</blockquote>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>通过这篇文章我们了解了为什么要对名词复数的国际化进行单独处理，和stringsdict文件的用法，相信你已经对名词复数的国际化有所了解，现在就去动手试试吧～</p>
+:ET

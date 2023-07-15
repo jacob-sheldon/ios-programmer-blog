@@ -1,0 +1,240 @@
+I"�,<p>绝大多数App的底部都有Tabbar来切换不同的功能，在UIKit框架中使用<code class="language-plaintext highlighter-rouge">UITabbarController</code>来实现这样的操作，到了SwiftUI中被<code class="language-plaintext highlighter-rouge">TabView</code>取代了。</p>
+
+<p>这篇文章我们将学习关于<code class="language-plaintext highlighter-rouge">TabView</code>的一些基础知识和高阶用法，其中包括这几个主要方面：</p>
+
+<ol>
+  <li>怎么创建<code class="language-plaintext highlighter-rouge">TabView</code></li>
+  <li><code class="language-plaintext highlighter-rouge">TabView</code>比<code class="language-plaintext highlighter-rouge">UITabbarController</code>的优势</li>
+  <li>自定义TabView的外观
+<!-- more -->
+绝大多数App的底部都有Tabbar来切换不同的功能，在UIKit框架中使用<code class="language-plaintext highlighter-rouge">UITabbarController</code>来实现这样的操作，到了SwiftUI中被<code class="language-plaintext highlighter-rouge">TabView</code>取代了。</li>
+</ol>
+
+<p>这篇文章我们将学习关于<code class="language-plaintext highlighter-rouge">TabView</code>的一些基础知识和高阶用法，其中包括这几个主要方面：</p>
+
+<ol>
+  <li>怎么创建<code class="language-plaintext highlighter-rouge">TabView</code></li>
+  <li><code class="language-plaintext highlighter-rouge">TabView</code>比<code class="language-plaintext highlighter-rouge">UITabbarController</code>的优势</li>
+  <li>自定义TabView的外观</li>
+</ol>
+
+<p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+
+<p><img src="../../images/swiftui-tabview/first.png" alt="" /></p>
+
+<h1 id="开始使用tabview"><a href="#开始使用TabView" title="开始使用TabView"></a>开始使用<code class="language-plaintext highlighter-rouge">TabView</code></h1>
+
+<h2 id="最基础的tabview"><a href="#最基础的TabView" title="最基础的TabView"></a>最基础的TabView</h2>
+
+<p>1<br />
+2<br />
+3<br />
+4</p>
+
+<p>TabView {<br />
+ ContentView()<br />
+ SecondView()<br />
+}</p>
+
+<p>这样就创建了一个最简单的<code class="language-plaintext highlighter-rouge">TabView</code>，和其他很多SwiftUI的控件一样TabView的初始化也是接收一个<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>修饰的View<code class="language-plaintext highlighter-rouge">public init(@ViewBuilder content: () -&gt; Content)</code>。</p>
+
+<p>其中的<code class="language-plaintext highlighter-rouge">ContentView</code>和<code class="language-plaintext highlighter-rouge">SecondView</code>是<code class="language-plaintext highlighter-rouge">TabView</code>的两个<code class="language-plaintext highlighter-rouge">Tabbar</code>，但是由于我们没有设置<code class="language-plaintext highlighter-rouge">Tabbar</code>的图片和文字，此时App最底部的导航栏是空的。</p>
+
+<h2 id="给tabbar设置图片和文字"><a href="#给Tabbar设置图片和文字" title="给Tabbar设置图片和文字"></a>给Tabbar设置图片和文字</h2>
+
+<p>得益于SwiftUI的声明式语法，我们设置tabbar中文字和图片的效率比UIKit高了10倍。</p>
+
+<p>1<br />
+2<br />
+3<br />
+4<br />
+5<br />
+6<br />
+7<br />
+8<br />
+9</p>
+
+<p>TabView {<br />
+ ContentView()<br />
+ .tabItem { Label(“Menu”, systemImage: “list.dash”) }<br />
+ SecondView()<br />
+ .tabItem {<br />
+ Image(systemName: “square.and.pencil”)<br />
+ Text(“Me”)<br />
+ }<br />
+}</p>
+
+<p><img src="../../images/swiftui-tabview/essential-tabview.png" alt="" /></p>
+
+<p>给tabbar设置图片和文字使用的是<code class="language-plaintext highlighter-rouge">tabItem</code><a href="https://www.iosprogrammer.tech/swiftui/swiftui-concept-essential#Modifer">视图修改器</a>。</p>
+
+<p>第一种设置文字和图片的方法是使用<code class="language-plaintext highlighter-rouge">Label</code>控件，它通过一个文字和一个图片作为参数来进行初始化，而第二种方式是直接使用了一段文字和一张图片。</p>
+
+<p>由于tabItem修改器的参数是一组View所以原则上来说可以使用任意View来设置tabbar的样式。</p>
+
+<p>1<br />
+2<br />
+3<br />
+4<br />
+5<br />
+6<br />
+7<br />
+8<br />
+9<br />
+10<br />
+11<br />
+12<br />
+13<br />
+14</p>
+
+<p>struct Tabbar: View {<br />
+ var body: some View {<br />
+ VStack {<br />
+ Text(“1”)<br />
+ Text(“2”)<br />
+ Image(systemName: “square.and.pencil”)<br />
+ Image(systemName: “list.dash”)<br />
+ }<br />
+ }<br />
+}</p>
+
+<p>.tabItem {<br />
+ Tabbar()<br />
+}</p>
+
+<p>使用了一个包含两段文字和两张图片的Tabbar来设置<code class="language-plaintext highlighter-rouge">tabItem</code>，最终能够显示出来的是<code class="language-plaintext highlighter-rouge">Text("1")</code>和<code class="language-plaintext highlighter-rouge">Image(systemName: "square.and.pencil")</code>，所以tabItem在实现的时候应该是使用的子视图中的第一段文字和第一张图片，且不论文字和图片的顺序如何，它们最终展示出来的位置都不会变。</p>
+
+<h1 id="自定义tabview外观"><a href="#自定义TabView外观" title="自定义TabView外观"></a>自定义<code class="language-plaintext highlighter-rouge">TabView</code>外观</h1>
+
+<h2 id="修改tabview的样式"><a href="#修改tabView的样式" title="修改tabView的样式"></a>修改tabView的样式</h2>
+
+<p>使用<code class="language-plaintext highlighter-rouge">tabViewStyle</code>修改器来设置不同的样式可以轻易满足不同的场景需要。</p>
+
+<p>TabViewStyle</p>
+
+<p>解释</p>
+
+<p>DefaultTabViewStyle</p>
+
+<p>默认样式，效果类似UITabbarController</p>
+
+<p>PageTabViewStyle</p>
+
+<p>没有下面的标签，可以左右滚动，常见于新闻App</p>
+
+<p>使用方式：</p>
+
+<p>1<br />
+2<br />
+3<br />
+4</p>
+
+<p>TabView {</p>
+
+<p>}<br />
+.tabViewStyle(DefaultTabViewStyle())</p>
+
+<h2 id="设置tabbaritem的选中颜色"><a href="#设置tabbarItem的选中颜色" title="设置tabbarItem的选中颜色"></a>设置tabbarItem的选中颜色</h2>
+
+<p>使用<code class="language-plaintext highlighter-rouge">accentColor()</code><a href="https://www.iosprogrammer.tech/swiftui/swiftui-concept-essential#Modifer">修改器</a>可以设置tabItem的选中颜色。</p>
+
+<p>1<br />
+2<br />
+3<br />
+4</p>
+
+<p>.tabItem {<br />
+ Label(“Menu”, systemImage: “list.dash”)<br />
+}<br />
+.accentColor(.green)</p>
+
+<p><code class="language-plaintext highlighter-rouge">accentColor</code>是设置View高亮颜色的修改器，设置后tabItem在未选中状态下是灰色，选中后是green绿色。</p>
+
+<h2 id="导航控制器隐藏tabbar"><a href="#导航控制器隐藏TabBar" title="导航控制器隐藏TabBar"></a>导航控制器隐藏TabBar</h2>
+
+<h3 id="自动隐藏底部tabbar"><a href="#自动隐藏底部tabbar" title="自动隐藏底部tabbar"></a>自动隐藏底部tabbar</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>NavigationView {  
+ TabView(selection: $tabViewSelection) {  
+ List(1...10, id: .self) {index in  
+ NavigationLink(  
+ destination: Text("Item (index) Details"),  
+ label: {  
+ Text("Item (index)")  
+ })  
+ }  
+ .tabItem {  
+ Label("Menu", systemImage: "list.dash")  
+ }  
+ .accentColor(.blue)  
+ .navigationTitle("Menu")  
+ .tag(0)  
+   
+ Text("Second Page")  
+ .navigationTitle("Me")  
+ .tabItem {  
+ Label("Me", systemImage: "square.and.pencil")  
+ }  
+ .navigationTitle("Home")  
+ .accentColor(.red)  
+ .tag(1)  
+ }  
+ .navigationTitle(tabViewSelection == 0 ? "Home" : "Me")  
+}  
+</code></pre></div></div>
+<p>将TabView嵌套在NavigationView里面也就是说TabView整体作为导航栈的首页，通过这种方式可以实现切换到二级页面自动隐藏底部Tabbar的效果。</p>
+
+<p>不过这样做会带来一个问题：TabView被当作一个页面来看待，那么设置的<code class="language-plaintext highlighter-rouge">navigationTitle</code>会对整个TabView生效，也就是说当切换tabItem的时候导航栏标题不会改变。为了解决这个问题，这里根据当前选中的tabItem来切换标题。关于怎么获取选中的tabItem和<code class="language-plaintext highlighter-rouge">tag</code>的内容我们下面再说。</p>
+
+<h3 id="不隐藏底部tabbar"><a href="#不隐藏底部tabbar" title="不隐藏底部tabbar"></a>不隐藏底部tabbar</h3>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>TabView {  
+ NavigationView {  
+ List(1...10, id: .self) {index in  
+ NavigationLink(  
+ destination: Text("Item (index) Details"),  
+ label: {  
+ Text("Item (index)")  
+ })  
+ }  
+ .navigationTitle("Home")  
+ }  
+ .tabItem {  
+ Label("Menu", systemImage: "list.dash")  
+ }  
+   
+ NavigationView {  
+ Text("Second Page")  
+ .navigationTitle("Me")  
+ }  
+ .tabItem {  
+ Label("Me", systemImage: "square.and.pencil")  
+ }  
+}  
+</code></pre></div></div>
+<p>每一个NavigationView是一个TabItem，当navigationView切换到二级页面时tabBar仍然会显示。</p>
+
+<p>关于SwiftUI导航栏相关的内容可以查看<a href="https://www.iosprogrammer.tech/swiftui/swiftui-navigate-get-start-tutorial">你应该知道的！关于SwiftUI中导航栏的4点知识</a>。</p>
+
+<h1 id="tabview选中的tabitem"><a href="#TabView选中的tabItem" title="TabView选中的tabItem"></a>TabView选中的tabItem</h1>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>public init(selection: Binding&lt;SelectionValue&gt;?, @ViewBuilder content: () -&gt; Content)  
+</code></pre></div></div>
+<p>在<code class="language-plaintext highlighter-rouge">TabView</code>的初始化方法中除了content之外还有一个<code class="language-plaintext highlighter-rouge">selection</code>参数，它的类型是<code class="language-plaintext highlighter-rouge">Bind&lt;SelectionValue&gt;</code>，这种类型的参数可以接受一个<code class="language-plaintext highlighter-rouge">@State</code>修饰的参数，关于@State和参数绑定相关的内容可以查看[学习SwiftUI，必须掌握的3个知识点](%5Bhttps%5D(https://www.iosprogrammer.tech/swiftui/swiftui-concept-essential)。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@State var tabViewSelection = 0  
+TabView(selection: $tabViewSelection)  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">tabViewSelection</code>是一个被@State绑定的变量，将它传递给TabView的初始化方法之后，当切换TabItem时该变量会被修改。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Button("Go to Home") {  
+  tabViewSelection = 0  
+}  
+</code></pre></div></div>
+<p>通过点击一个按钮来修改<code class="language-plaintext highlighter-rouge">tabViewSelection</code>变量的值，tabView被选中的tabItem就会成第0个。</p>
+
+<p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>在这篇文章中我们主要了解了tabView的用法和怎么修改tabView以及tabItem的样式，以及关于绑定tabView选中的item的方法，相信现在你已经对SwiftUI框架中的tabView有了一个全面的掌握，赶紧用起来吧😊</p>
+:ET

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iOS 开发栈 | SwiftUI弹窗大全：Menu/Alert/ActionSheet</title>
+  
+  <link rel="stylesheet" href="/assets/css/post.css" />
+  <link rel="stylesheet" href="/assets/css/syntax.css" />
+  
+  <link rel="stylesheet" href="/assets/css/common.css" />
+  <script src="/assets/js/categories.js"></script>
+  
+  <script defer src="/assets/js/lbox.js"></script>
+  
+</head>
+
+  <body>
+    <main>
+      <header>
+  <a class="site-title" href="/">iOS 开发栈</a>
+</header>
+
+      <section class="article">
+        <div class="article-header">
+          <h2 class="article-title">SwiftUI弹窗大全：Menu/Alert/ActionSheet</h2>
+          <small class="date">13 Jun 2021</small>
+        </div>
+        <div class="content"><p>一个iOS应用中必然会有很多的弹窗，UIKit中的弹窗主要是<code class="language-plaintext highlighter-rouge">UIMenuController</code>、<code class="language-plaintext highlighter-rouge">UIAlertView</code>和<code class="language-plaintext highlighter-rouge">UIActionController</code>，到了SwiftUI框架中也有对应的弹窗，它们分别是<code class="language-plaintext highlighter-rouge">contextMenu</code>、<code class="language-plaintext highlighter-rouge">alert</code>和<code class="language-plaintext highlighter-rouge">actionSheet</code>三个<a href="https://www.iosprogrammer.tech/swiftui/swiftui-concept-essential/#Modifer">ViewModifier(视图修改器)</a>。
+<!-- more -->
+<img src="../../images/swiftui-popupview/first.png" alt="" /></p>
+
+<p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+
+<h1 id="contextmenu"><a href="#contextMenu" title="contextMenu"></a>contextMenu</h1>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/* 下面两种方式是等价的 */  
+  
+// 第一种方式  
+let menu = ContextMenu {   
+}  
+  
+Button("1", action: {})  
+ .contextMenu(menu)  
+  
+// 第二种方式  
+Image(systemName: "square.and.arrow.up")  
+  .contextMenu {  
+    Button("1", action: {})  
+ }  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">contextMenu</code>两种初始化方式对应上面例子中的两种方式，第一种<code class="language-plaintext highlighter-rouge">public func contextMenu&lt;MenuItems&gt;(_ contextMenu: ContextMenu&lt;MenuItems&gt;?) -&gt; some View where MenuItems : View</code>是用一个<code class="language-plaintext highlighter-rouge">ContextMenu</code>实例作为参数；第二种<code class="language-plaintext highlighter-rouge">public func contextMenu&lt;MenuItems&gt;(@ViewBuilder menuItems: () -&gt; MenuItems) -&gt; some View where MenuItems : View</code>的参数是一个使用<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>修饰的闭包。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>public struct ContextMenu&lt;MenuItems&gt; where MenuItems : View {
+  public init(@ViewBuilder menuItems: () -&gt; MenuItems)
+}
+</code></pre></div></div>
+<p>由<code class="language-plaintext highlighter-rouge">ContextMenu</code>的初始化方法可以看出，要初始化这个类也是需要一个用<code class="language-plaintext highlighter-rouge">@ViewBuilder</code>修饰的闭包，所以上面的两种<code class="language-plaintext highlighter-rouge">menuContext</code>使用方式并没有本质区别。或者说第二种是第一种的简便方法，类似于这样的用法在SwiftUI中有很多。</p>
+
+<p>下面是一个完整的例子：</p>
+
+<p><img src="../../images/swiftui-popupview/menuview.png" alt="" /></p>
+
+<p>长按”Context Menu”文本后会弹出一个Menu菜单，其中每个选项都是一个按钮，因为这是一个示例程序所以按钮的事件没有写，在你的项目中可以加上对应的事件。</p>
+
+<h1 id="alert"><a href="#alert" title="alert"></a>alert</h1>
+
+<p><img src="../../images/swiftui-popupview/alert.png" alt="" /></p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@State var presentAlert: Bool = false
+
+Button {
+ presentAlert = true
+} label: {
+  Text("Show Alert")
+}
+
+.alert(isPresented: $presentAlert) {  
+  let alert = Alert(title: Text("Alert Test"), message: Text("This is a test case"),       primaryButton: .default(Text("Sure")), secondaryButton: .destructive(Text("Cancel")))  
+   
+  return alert  
+}
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">alert</code>这个视图修改器接受两个参数，第一个是<code class="language-plaintext highlighter-rouge">Binding&lt;Bool&gt;</code>类型，我们可以通过在一个被<code class="language-plaintext highlighter-rouge">@State</code>属性包装器包装的属性前加<code class="language-plaintext highlighter-rouge">$</code>来作为这个参数，详情可以参考<a href="https://www.iosprogrammer.tech/swiftui/swiftui-concept-essential/#State%E5%92%8C-%E2%80%94%E2%80%94-Binding-Value">属性包装器和@State</a></p>
+
+<p>第二个参数是一个返回值是<code class="language-plaintext highlighter-rouge">Alert</code>类型的闭包，因此我们这里需要创建一个Alert的示例作为返回值。</p>
+
+<h1 id="actionsheet"><a href="#actionSheet" title="actionSheet"></a>actionSheet</h1>
+
+<p><img src="../../images/swiftui-popupview/actionSheet.png" alt="" /></p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@State var presentAlert: Bool = false  
+  
+Button {  
+  presentAlert = true  
+} label: {  
+  Text("Show Alert")  
+}  
+
+.actionSheet(isPresented: $presentAlert) {  
+  let actionSheet = ActionSheet(title: Text("Test ActionSheet"), message: Text("This is a test") , buttons: [.default(Text("Sure Item")), .default(Text("Sure Item2")), .destructive(Text ("Cancel"))])  
+  return actionSheet  
+}  
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">actionSheet</code>和上面的<code class="language-plaintext highlighter-rouge">alert</code>用法非常相似，第一个参数是一个<code class="language-plaintext highlighter-rouge">Binding&lt;Bool&gt;</code>类型的变量，<code class="language-plaintext highlighter-rouge">presentAlert</code>是一个被<code class="language-plaintext highlighter-rouge">@State</code>属性包装器包装的Bool类型变量，在这个变量前面加<code class="language-plaintext highlighter-rouge">$</code>可以生成一个Binding类型的变量。</p>
+
+<p>第一个参数是一个返回值是<code class="language-plaintext highlighter-rouge">ActionSheet</code>类型的闭包，因此需要创建这个类型的实例并将它作为返回值。<code class="language-plaintext highlighter-rouge">buttons</code>参数是一个<code class="language-plaintext highlighter-rouge">ActionSheet.Button</code>类型的数组，因为这是一个实例程序，Button并没有添加任何的事件，如果需要可以自行添加。</p>
+
+<p>到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。</p>
+
+<h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
+
+<p>这篇文章对SwiftUI框架中的<code class="language-plaintext highlighter-rouge">contextMenu</code>、<code class="language-plaintext highlighter-rouge">alert</code>和<code class="language-plaintext highlighter-rouge">actionSheet</code>做了全面的说明，你现在对这3种弹窗肯定有了全面的认识，那就在项目中用起来吧。👍</p>
+</div>
+      </section>
+      <footer>
+  <p>&copy; 1947 - 2022 | iOS 开发栈</p>
+</footer>
+
+    </main>
+    <section id="category-modal-bg"></section>
+<section id="category-modal">
+  <h1 id="category-modal-title"></h1>
+  <section id="category-modal-content"></section>
+</section>
+
+  </body>
+</html>
+

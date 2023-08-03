@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iOS 开发栈 | 全面了解 Objective-C 语言</title>
+  
+  <link rel="stylesheet" href="/assets/css/post.css" />
+  <link rel="stylesheet" href="/assets/css/syntax.css" />
+  
+  <link rel="stylesheet" href="/assets/css/common.css" />
+  <script src="/assets/js/categories.js"></script>
+  
+  <script defer src="/assets/js/lbox.js"></script>
+  
+</head>
+
+  <body>
+    <main>
+      <header>
+  <a class="site-title" href="/">iOS 开发栈</a>
+</header>
+
+      <section class="article">
+        <div class="article-header">
+          <h2 class="article-title">全面了解 Objective-C 语言</h2>
+          <small class="date">24 May 2022</small>
+        </div>
+        <div class="content"><h1 id="全面了解-objective-c-语言">全面了解 Objective-C 语言</h1>
+
+<p>到了2022年大多数iOS应用开发都开始用Swift了，不过 Objective-C 仍然是无法完全避开的，尤其是对于一些稍有规模的应用来说，需要用到好多三方库，而有一些三方库并没有Swift版本的。所以掌握 Objective-C 对于iOS开发还是很有必要的。</p>
+
+<p>从基础开始全面了解一个技术的方方面面才能更好的掌握它，而最全面的资料就非官方文档莫属了。</p>
+
+<p>这篇文章就是根据苹果的官方文档<a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/Introduction/Introduction.html#:~:text=Objective%2DC%20is%20the%20primary,capabilities%20and%20a%20dynamic%20runtime.">Programming with Objective-C</a>写的，其中主要涉及了几个比较重要的知识点。</p>
+
+<p>如果你对下面这几个问题并不确定，强烈建议耐心读完这篇文章：</p>
+
+<ul>
+  <li>Objective-C 中的类也是对象</li>
+  <li></li>
+</ul>
+
+<h2 id="objective-c-语言定义">Objective-C 语言定义</h2>
+
+<p>Objective-C 是 C 语言的超集，除了拥有和 C 语言相似的控制流、基本类型和语法之外，增加了面向对象和动态运行时。</p>
+
+<p>有了这个定义，下面我们来看 Objective-C 的具体语法。</p>
+
+<h2 id="定义类">定义类</h2>
+
+<h3 id="类和对象">类和对象</h3>
+
+<p>和其他面向对象语言一样，Objc 中的<strong>对象用来包装数据和行为</strong>。<strong>对象是类的实例</strong>。</p>
+
+<p>每个对象有自己的数据内容，但是它们同享类的行为（方法）。</p>
+
+<p>Objc 的类中有些是不可变的，如 NSString/NSArray等，它们有可变的版本，如 NSMutableString/NSMutableArray</p>
+
+<h3 id="继承">继承</h3>
+
+<p>如果一个（子）类继承自另一个（父）类那么子类得到父类所有的方法和属性，子类可以增加方法/属性或者重写父类的方法。</p>
+
+<p>Objc 提供了一个基类 <code class="language-plaintext highlighter-rouge">NSObject</code>，当需要自定义类的时候至少继承自 <code class="language-plaintext highlighter-rouge">NSObject</code>，尽量继承自更合适的子类或子类的子类。</p>
+
+<p>子类不仅会继承父类中所有的属性和方法，还会把整个继承链中所有类的属性和方法都继承过来。</p>
+
+<h3 id="接口和实现">接口和实现</h3>
+
+<p>接口是用来定义需要暴露给其他对象的属性和行为的，实现是具体的做法，需要隐藏起来。</p>
+
+<p>Objc 中接口和实现分为不同的文件，接口以 <code class="language-plaintext highlighter-rouge">.h</code> 接口，实现以 <code class="language-plaintext highlighter-rouge">.m</code> 结尾。</p>
+
+<h4 id="接口">接口</h4>
+
+<p>定义接口的语法：</p>
+
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">@interface</span> <span class="nc">SimpleClass</span> <span class="p">:</span> <span class="nc">NSObject</span>
+    
+<span class="k">@end</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">SimpleClass</code> 类的定义中没有提供任何的属性和行为，不过由于它继承自 <code class="language-plaintext highlighter-rouge">NSObject</code> ，其他对象可以访问它继承过来的属性和方法。下面看一个复杂的接口定义：</p>
+
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">@interface</span> <span class="nc">XYZPerson</span> <span class="p">:</span> <span class="nc">NSObject</span>
+    
+<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">copy</span><span class="p">,</span> <span class="n">readonly</span><span class="p">)</span> <span class="n">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="n">nonatomic</span><span class="p">,</span> <span class="n">assign</span><span class="p">)</span> <span class="kt">int</span> <span class="n">age</span><span class="p">;</span>
+
+<span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">write</span><span class="p">;</span>
+<span class="k">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">say</span><span class="p">:(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">word</span> <span class="nf">volumn</span><span class="p">:(</span><span class="n">CGFloat</span><span class="p">)</span><span class="nv">volumn</span><span class="p">;</span>
+    
+<span class="k">@end</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">XYZPerson</code>类继承自 <code class="language-plaintext highlighter-rouge">NSObject</code> 并且它提供了自己的属性和方法。<code class="language-plaintext highlighter-rouge">@property</code> 用来定义属性，属性可以是对象类型和基本类型的，对象类型的需要使用指针（*）表示，基本类型就和 C 语言的基本类型一样。</p>
+
+<p>属性可以指定修饰符。OC 包含很多修饰符，大体上可以分为线程相关、内存管理相关和访问相关。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>分类</th>
+      <th>举例</th>
+      <th>说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>线程相关</td>
+      <td><code class="language-plaintext highlighter-rouge">nonatomic</code> <code class="language-plaintext highlighter-rouge">atomic</code></td>
+      <td><code class="language-plaintext highlighter-rouge">atomic</code> - 原子性<br /><code class="language-plaintext highlighter-rouge">nonatomic</code> - 非原子性</td>
+    </tr>
+    <tr>
+      <td>内存管理相关</td>
+      <td><code class="language-plaintext highlighter-rouge">copy</code> <code class="language-plaintext highlighter-rouge">strong</code> <code class="language-plaintext highlighter-rouge">assign</code> <code class="language-plaintext highlighter-rouge">weak</code></td>
+      <td><code class="language-plaintext highlighter-rouge">copy</code> - 复制<br /><code class="language-plaintext highlighter-rouge">strong</code> - 强引用<br /><code class="language-plaintext highlighter-rouge">weak</code> - 弱引用<br /><code class="language-plaintext highlighter-rouge">assign</code> - 基本数据类型</td>
+    </tr>
+    <tr>
+      <td>访问相关</td>
+      <td><code class="language-plaintext highlighter-rouge">readonly</code>  <code class="language-plaintext highlighter-rouge">readwrite</code></td>
+      <td><code class="language-plaintext highlighter-rouge">readonly</code> - 只读，不能修改<br /><code class="language-plaintext highlighter-rouge">readwrite</code> - 可读可写，默认</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>OC 中的方法可以定义比较特性独行，<code class="language-plaintext highlighter-rouge">XYZPerson</code> 中定义了两个方法<code class="language-plaintext highlighter-rouge">write</code>和<code class="language-plaintext highlighter-rouge">say:valumn</code>。</p>
+
+<p>方法以<code class="language-plaintext highlighter-rouge">-</code>开头，后面是用<code class="language-plaintext highlighter-rouge">()</code>包围的返回值，再是方法签名。可以有参数也可以没有参数，有参数的话使用<code class="language-plaintext highlighter-rouge">:</code>分隔，多个参数之间用空格分隔。方法名通常以小写字母开头并且遵守驼峰命名法，如：<code class="language-plaintext highlighter-rouge">thisIsMethod</code></p>
+
+<h4 id="实现">实现</h4>
+
+<p>类实现的语法：</p>
+
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#import "XYZPerson.h"
+</span>
+<span class="k">@implementation</span>
+    
+<span class="err">-</span> <span class="err">(</span><span class="nc">void</span><span class="p">)</span><span class="n">write</span>
+<span class="p">{</span>
+    <span class="c1">// something</span>
+<span class="p">}</span>
+
+<span class="k">-</span> <span class="p">(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">say</span><span class="p">:(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">word</span> <span class="nf">volumn</span><span class="p">:(</span><span class="n">CGFloat</span><span class="p">)</span><span class="nv">volumn</span>
+<span class="p">{</span>
+    <span class="c1">// something</span>
+<span class="p">}</span>
+
+<span class="k">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">internalMethod</span>
+<span class="p">{</span>
+    <span class="c1">// something</span>
+<span class="p">}</span>
+    
+<span class="k">@end</span>
+</code></pre></div></div>
+
+<p>实现文件中需要导入接口文件:<code class="language-plaintext highlighter-rouge">#import "XYZPerson.h"</code> 实现内容在 <code class="language-plaintext highlighter-rouge">@implementation</code> 和 <code class="language-plaintext highlighter-rouge">@end</code> 之间，其中<strong>必须包含所有接口中定义的方法和可选任意数量私有方法</strong>。</p>
+
+<h3 id="类本身也是对象">类本身也是对象</h3>
+
+<p>OC 中的类本身也是对象，叫做<strong>类对象</strong>。类对象不能定义属性，但是可以定义方法（类方法）接受消息。比如 <code class="language-plaintext highlighter-rouge">NSString</code> 类对象中就包括很多类方法：</p>
+
+<div class="language-objc highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">+</span> <span class="p">(</span><span class="n">id</span><span class="p">)</span><span class="n">string</span><span class="p">;</span>
+<span class="k">+</span> <span class="p">(</span><span class="n">id</span><span class="p">)</span><span class="nf">stringWithString</span><span class="p">:(</span><span class="n">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">aString</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>类方法以 <code class="language-plaintext highlighter-rouge">+</code> 开头，返回值和参数和对象方法相同，类方法使用类名调用 <code class="language-plaintext highlighter-rouge">[NSString string]</code>。类方法的实现和实力方法相同。</p>
+
+<h2 id="对象">对象</h2>
+
+<h2 id="总结">总结</h2>
+
+<p>本文章的内容大多数来自苹果的官方文档<a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/Introduction/Introduction.html#:~:text=Objective%2DC%20is%20the%20primary,capabilities%20and%20a%20dynamic%20runtime.">Programming with Objective-C</a>，建议通读。</p>
+</div>
+      </section>
+      <footer>
+  <p>&copy; 1947 - 2023 | iOS 开发栈</p>
+</footer>
+
+    </main>
+    <section id="category-modal-bg"></section>
+<section id="category-modal">
+  <h1 id="category-modal-title"></h1>
+  <section id="category-modal-content"></section>
+</section>
+
+  </body>
+</html>
+

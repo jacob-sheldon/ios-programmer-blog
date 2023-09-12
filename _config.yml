@@ -28,7 +28,6 @@ github_username: jacob-sheldon
 
 # Build settings
 theme: minima
-# remote_theme: just-the-docs/just-the-docs
 plugins:
   - jekyll-feed
   

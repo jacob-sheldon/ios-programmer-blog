@@ -1,33 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iOS 开发栈 | SwiftUI弹窗大全：Menu/Alert/ActionSheet</title>
-  
-  <link rel="stylesheet" href="/assets/css/post.css" />
-  <link rel="stylesheet" href="/assets/css/syntax.css" />
-  
-  <link rel="stylesheet" href="/assets/css/common.css" />
-  <script src="/assets/js/categories.js"></script>
-  
-  <script defer src="/assets/js/lbox.js"></script>
-  
-</head>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>SwiftUI弹窗大全：Menu/Alert/ActionSheet | iOS 开发栈</title>
+<meta name="generator" content="Jekyll v3.9.2" />
+<meta property="og:title" content="SwiftUI弹窗大全：Menu/Alert/ActionSheet" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="一个iOS应用中必然会有很多的弹窗，UIKit中的弹窗主要是UIMenuController、UIAlertView和UIActionController，到了SwiftUI框架中也有对应的弹窗，它们分别是contextMenu、alert和actionSheet三个ViewModifier(视图修改器)。" />
+<meta property="og:description" content="一个iOS应用中必然会有很多的弹窗，UIKit中的弹窗主要是UIMenuController、UIAlertView和UIActionController，到了SwiftUI框架中也有对应的弹窗，它们分别是contextMenu、alert和actionSheet三个ViewModifier(视图修改器)。" />
+<link rel="canonical" href="http://localhost:4000/swiftui/menu-alert-actionsheet/" />
+<meta property="og:url" content="http://localhost:4000/swiftui/menu-alert-actionsheet/" />
+<meta property="og:site_name" content="iOS 开发栈" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2021-06-13T02:31:50+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="SwiftUI弹窗大全：Menu/Alert/ActionSheet" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-06-13T02:31:50+08:00","datePublished":"2021-06-13T02:31:50+08:00","description":"一个iOS应用中必然会有很多的弹窗，UIKit中的弹窗主要是UIMenuController、UIAlertView和UIActionController，到了SwiftUI框架中也有对应的弹窗，它们分别是contextMenu、alert和actionSheet三个ViewModifier(视图修改器)。","headline":"SwiftUI弹窗大全：Menu/Alert/ActionSheet","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/swiftui/menu-alert-actionsheet/"},"url":"http://localhost:4000/swiftui/menu-alert-actionsheet/"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="iOS 开发栈" /></head>
+<body><header class="site-header" role="banner">
 
-  <body>
-    <main>
-      <header>
-  <a class="site-title" href="/">iOS 开发栈</a>
+  <div class="wrapper"><a class="site-title" rel="author" href="/">iOS 开发栈</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/">专注 iOS 开发的中文博客</a></div>
+      </nav></div>
 </header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
-      <section class="article">
-        <div class="article-header">
-          <h2 class="article-title">SwiftUI弹窗大全：Menu/Alert/ActionSheet</h2>
-          <small class="date">13 Jun 2021</small>
-        </div>
-        <div class="content"><p>一个iOS应用中必然会有很多的弹窗，UIKit中的弹窗主要是<code class="language-plaintext highlighter-rouge">UIMenuController</code>、<code class="language-plaintext highlighter-rouge">UIAlertView</code>和<code class="language-plaintext highlighter-rouge">UIActionController</code>，到了SwiftUI框架中也有对应的弹窗，它们分别是<code class="language-plaintext highlighter-rouge">contextMenu</code>、<code class="language-plaintext highlighter-rouge">alert</code>和<code class="language-plaintext highlighter-rouge">actionSheet</code>三个<a href="https://www.iosprogrammer.tech/swiftui/swiftui-concept-essential/#Modifer">ViewModifier(视图修改器)</a>。
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">SwiftUI弹窗大全：Menu/Alert/ActionSheet</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2021-06-13T02:31:50+08:00" itemprop="datePublished">Jun 13, 2021
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>一个iOS应用中必然会有很多的弹窗，UIKit中的弹窗主要是<code class="language-plaintext highlighter-rouge">UIMenuController</code>、<code class="language-plaintext highlighter-rouge">UIAlertView</code>和<code class="language-plaintext highlighter-rouge">UIActionController</code>，到了SwiftUI框架中也有对应的弹窗，它们分别是<code class="language-plaintext highlighter-rouge">contextMenu</code>、<code class="language-plaintext highlighter-rouge">alert</code>和<code class="language-plaintext highlighter-rouge">actionSheet</code>三个<a href="https://www.iosprogrammer.tech/swiftui/swiftui-concept-essential/#Modifer">ViewModifier(视图修改器)</a>。
 <!-- more -->
 <img src="../../images/swiftui-popupview/first.png" alt="" /></p>
 
@@ -111,19 +131,35 @@ Button {
 <h1 id="总结"><a href="#总结" title="总结"></a>总结</h1>
 
 <p>这篇文章对SwiftUI框架中的<code class="language-plaintext highlighter-rouge">contextMenu</code>、<code class="language-plaintext highlighter-rouge">alert</code>和<code class="language-plaintext highlighter-rouge">actionSheet</code>做了全面的说明，你现在对这3种弹窗肯定有了全面的认识，那就在项目中用起来吧。👍</p>
+
+  </div><a class="u-url" href="/swiftui/menu-alert-actionsheet/" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">iOS 开发栈</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">iOS 开发栈</li><li><a class="u-email" href="mailto:shizhiang@126.com">shizhiang@126.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/jacob-sheldon"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">jacob-sheldon</span></a></li><li><a href="https://www.twitter.com/shizhiang1"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#twitter"></use></svg> <span class="username">shizhiang1</span></a></li></ul>
 </div>
-      </section>
-      <footer>
-  <p>&copy; 1947 - 2023 | iOS 开发栈</p>
+
+      <div class="footer-col footer-col-3">
+        <p>专注 iOS 开发的中文博客 | ObjC、Swift、Xcode、SwiftUI、CoreData、Runtime、Runloop、内存管理、多线程。</p>
+      </div>
+    </div>
+
+  </div>
+
 </footer>
+</body>
 
-    </main>
-    <section id="category-modal-bg"></section>
-<section id="category-modal">
-  <h1 id="category-modal-title"></h1>
-  <section id="category-modal-content"></section>
-</section>
-
-  </body>
 </html>
-

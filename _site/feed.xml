@@ -1,4 +1,217 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-09-12T10:34:44+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">iOS 开发栈</title><subtitle>专注 iOS 开发的中文博客 | ObjC、Swift、Xcode、SwiftUI、CoreData、Runtime、Runloop、内存管理、多线程。</subtitle><entry><title type="html">全面了解 Objective-C 语言</title><link href="http://localhost:4000/ios/objective-c/" rel="alternate" type="text/html" title="全面了解 Objective-C 语言" /><published>2022-05-24T20:58:33+08:00</published><updated>2022-05-24T20:58:33+08:00</updated><id>http://localhost:4000/ios/Programming-with-Objective-C</id><content type="html" xml:base="http://localhost:4000/ios/objective-c/">&lt;h1 id=&quot;全面了解-objective-c-语言&quot;&gt;全面了解 Objective-C 语言&lt;/h1&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-09-12T12:38:39+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">iOS 开发栈</title><subtitle>专注 iOS 开发的中文博客 | ObjC、Swift、Xcode、SwiftUI、CoreData、Runtime、Runloop、内存管理、多线程。</subtitle><entry><title type="html">监控 iOS 应用的启动耗时</title><link href="http://localhost:4000/ios/oneapm-launchtime/" rel="alternate" type="text/html" title="监控 iOS 应用的启动耗时" /><published>2023-09-12T00:00:00+08:00</published><updated>2023-09-12T00:00:00+08:00</updated><id>http://localhost:4000/ios/oneapm-launchtime</id><content type="html" xml:base="http://localhost:4000/ios/oneapm-launchtime/">&lt;blockquote&gt;
+  &lt;p&gt;本人找工作中，有iOS坑的话麻烦联系我，微：happy7591&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;启动过程可以分为 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; 函数之前，main函数到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;application:didLaunchFinishWithOptions:&lt;/code&gt; ，第一个页面的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;viewDidAppear:&lt;/code&gt; 这三个阶段，为了能够做针对性的优化，我们就需要分别统计这三个阶段的耗时。&lt;/p&gt;
+
+&lt;h2 id=&quot;main-函数之前&quot;&gt;main 函数之前&lt;/h2&gt;
+
+&lt;p&gt;统计 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; 函数之前的耗时涉及到两个时间点：应用进程启动、&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; 函数执行。&lt;/p&gt;
+
+&lt;h3 id=&quot;获取-ios-应用进程创建时间&quot;&gt;获取 iOS 应用进程创建时间&lt;/h3&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;long processStartTime;
+
+/// 进程创建时间
+void oneapm_get_process_start_time(void) {
+    struct kinfo_proc proc;
+    int pid = [[NSProcessInfo processInfo] processIdentifier];
+    int cmd[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+    size_t size = sizeof(proc);
+    if (sysctl(cmd, sizeof(cmd)/sizeof(*cmd), &amp;amp;proc, &amp;amp;size, NULL, 0) == 0) {
+        long seconds =  proc.kp_proc.p_un.__p_starttime.tv_sec;
+        processStartTime = seconds;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;这里主要是通过 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sysctl&lt;/code&gt; 函数获取到进程信息并存放在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;proc&lt;/code&gt; 变量中，然后就可以从这个变量中获取到进程的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;starttime&lt;/code&gt; 了。&lt;/p&gt;
+
+&lt;p&gt;这里的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;tv_sec&lt;/code&gt; 是精确到秒的时间戳，还有一个具体的微妙，我认为意义不大，就没有使用。&lt;/p&gt;
+
+&lt;p&gt;把进程创建时间的秒数存放在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;processStartTime&lt;/code&gt; 中，便于下面的计算。&lt;/p&gt;
+
+&lt;h3 id=&quot;获取-main-函数执行时间&quot;&gt;获取 main 函数执行时间&lt;/h3&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;int (*oneapm_origin_applicationMain)(int argc, char * _Nullable argv[_Nonnull], NSString * _Nullable principalClassName, NSString * _Nullable delegateClassName);
+
+int oneapm_myApplicationMain(int argc, char * _Nullable argv[_Nonnull], NSString * _Nullable principalClassName, NSString * _Nullable delegateClassName) {
+    NSTimeInterval interval = [[NSDate date] timeIntervalSinceDate:[NSDate dateWithTimeIntervalSince1970:processStartTime]];
+    NSLog(@&quot;pre-main阶段耗时 = %f&quot;, interval);
+    return oneapm_origin_applicationMain(argc, argv, principalClassName, delegateClassName);
+}
+
+__attribute__((constructor))
+void oneapm_hookMain(void) {
+    oneapm_get_process_start_time();
+    oam_rebind_symbols((struct oam_rebinding[1]){ {&quot;UIApplicationMain&quot;, oneapm_myApplicationMain, (void **)&amp;amp;oneapm_origin_applicationMain}}, 1);
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;首先创建一个使用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__attribute__((constructor))&lt;/code&gt; 修饰的函数 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;oneapm_hookMain&lt;/code&gt;，这个函数会在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; 之前执行。
+之后使用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fishhook&lt;/code&gt; 这个开源库来 hook &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIApplicationMain&lt;/code&gt; 函数，把它的函数实现地址换成自定义的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;oneapm_myApplicationMain&lt;/code&gt;，这样当 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIApplicationMain&lt;/code&gt; 执行的时候，实际被调用的就是自己实现的这个函数了。&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;关于 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fishhook&lt;/code&gt; 是怎么做到能够替换 C 函数的，这里不做详细说明。简单来说 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fishhook&lt;/code&gt; 利用了动态库的链接需要用到内存中两个 _section 段中存储的函数地址，然后它根据函数名把内存地址换乘了自定义的函数所在的地址。相关源码分析的文章也有很多，可以去搜一下，这个项目的代码很少，也可以自己看源码，不懂的地方可以直接问 ChatGPT。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;这里还需要注意的是，我们修改了 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIApplicationMain&lt;/code&gt; 函数的执行，所以就不会调用到 UIKit 中的实现了，这显然是不行的，所以还需要在执行完自己的逻辑（这里就是统计时间）以后再去调用原来的函数。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;oam_rebind_symbols&lt;/code&gt; 的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;oneapm_origin_applicationMain&lt;/code&gt; 参数就是记录了原来的函数地址，然后在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;oneapm_myApplicationMain&lt;/code&gt; 最后面调用它。&lt;/p&gt;
+
+&lt;p&gt;然后就是计算从进程启动到执行到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIApplicationMain&lt;/code&gt; 所用的时间了，我自己在一个空项目里面测试的时间大概在 0.5s 到 1s 之间。其实这个时间还是挺长的，这也许就是 Apple 不断优化项目启动耗时的原因了。点击应用图标之后的那个动画也确实很大程度上掩盖了这个问题。&lt;/p&gt;
+
+&lt;p&gt;如果项目中这个耗时比较长，那就需要对动态库、&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+load&lt;/code&gt; 方法、类/分类 等内容进行处理了。&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;这里我用的是 hook &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIApplicationMain&lt;/code&gt;，其实如果能直接 hook &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; 函数更好，但是我没有成功。还有一个办法是通过分析 MachOView 可以得到项目的入口点 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;LC_MAIN&lt;/code&gt;，然后可以通过修改 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;entry_point_command&lt;/code&gt; 的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;entryoff&lt;/code&gt; 来让它执行我们自定义的函数，我也没有成功。所以最后就采用了现在的方案。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;统计-load-方法的耗时&quot;&gt;统计 +load 方法的耗时&lt;/h3&gt;
+
+&lt;p&gt;这段代码可以统计项目中所有类和分类的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+load&lt;/code&gt; 方法耗时。&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;#import &amp;lt;Foundation/Foundation.h&amp;gt;
+#import &amp;lt;objc/runtime.h&amp;gt;
+
+typedef void (*ClassMethodIMP)(Class, SEL);
+
+// 递归遍历所有类及其子类
+static void oneapm_hookAllLoadMethods(void) {
+    // 递归遍历子类
+    Class *subclasses = NULL;
+    int numSubclasses = objc_getClassList(NULL, 0);
+    if (numSubclasses &amp;gt; 0) {
+        subclasses = (__unsafe_unretained Class *)malloc(sizeof(Class) * numSubclasses);
+        numSubclasses = objc_getClassList(subclasses, numSubclasses);
+        for (int i = 0; i &amp;lt; numSubclasses; i++) {
+            Class class = subclasses[i];
+            NSString *className = NSStringFromClass(class);
+            Class metaClass = objc_getMetaClass(object_getClassName(class));
+            
+            // 这样来区分是自己的类
+            if ([className hasPrefix:@&quot;XYZ&quot;]) {
+                unsigned int outCnt = 0;
+                Method *methods = class_copyMethodList(metaClass, &amp;amp;outCnt);
+                for (int i = 0; i &amp;lt; outCnt; i++) {
+                    Method m = methods[i];
+                    SEL methodSelector = method_getName(m);
+                    NSString *methodName = NSStringFromSelector(methodSelector);
+                    if ([methodName isEqualToString:@&quot;load&quot;]) {
+                        ClassMethodIMP methodIMP = (ClassMethodIMP)method_getImplementation(m);
+                        // 记录方法执行前的时间戳
+                        NSDate *start = [NSDate date];
+                        methodIMP(metaClass, methodSelector);
+                        // 计算耗时
+                        NSTimeInterval executeTime = -[start timeIntervalSinceNow];
+                        NSLog(@&quot;Class %@ +load method took %.4f seconds to execute&quot;, NSStringFromClass(class), executeTime);
+                    }
+                }
+            }
+        }
+        free(subclasses);
+    }
+}
+
+__attribute__((constructor))
+static void oneapm_hook_all_load(void) {
+    oneapm_hookAllLoadMethods();
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;主要的思路就是通过获取项目中所有的类的元类，然后拿到元类中的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+load&lt;/code&gt; 方法，通过在直接调用方法的实现前后统计时间，就能得到耗时了。&lt;/p&gt;
+
+&lt;p&gt;因为获取所有的类里面会包含所有的系统类，直接把系统类的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+load&lt;/code&gt; 方法也进行统计的话没有意义，而且会增加很多的耗时，系统类大概会有2300多个。所以我这里通过类的前缀 “XYZ” 来区分自己的类。&lt;em&gt;这只是一个临时的办法，我暂时没有找到怎么获取系统中自定义类的方式，如果你知道麻烦告诉我。&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;在调用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+load&lt;/code&gt; 方法时需要用元类调用，并且需要循环元类的所有方法，因为可能有分类重写了 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+load&lt;/code&gt; 方法，并且实际项目启动时所有的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+load&lt;/code&gt; 方法都会执行，所以分类中的也需要被统计。&lt;/p&gt;
+
+&lt;h2 id=&quot;hook-appdelegate&quot;&gt;Hook AppDelegate&lt;/h2&gt;
+
+&lt;p&gt;在项目启动阶段，大多数项目中都会把一些全项目都会用到的东西放到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;application:willFinishLaunchingWithOptions:&lt;/code&gt; 或者 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;application:didFinishLaunchingWithOptions:&lt;/code&gt; 中，而这很可能会导致启动速度变慢，所以这两个方法的耗时应该被统计。&lt;/p&gt;
+
+&lt;h3 id=&quot;使用-aspects&quot;&gt;使用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Aspects&lt;/code&gt;&lt;/h3&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;这种方式我们成功&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;要使用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Aspects&lt;/code&gt; hook 一个实例方法需要使用类的一个实例，而 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;AppDelegate&lt;/code&gt; 的创建是在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; 函数中通过调用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIApplicationMain&lt;/code&gt; 函数来完成的，当这个函数执行时，整个项目就开始了 runloop，所以没有办法在这个函数执行结束后拿到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;AppDelegate&lt;/code&gt; 的实例。&lt;/p&gt;
+
+&lt;p&gt;如果采用在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;AppDelegate&lt;/code&gt; 类中重写 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;init&lt;/code&gt; 的方式来使用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Aspects&lt;/code&gt; hook 这两个实例方法的话，应该是可行的。但是对项目就有侵入了，不太优雅。&lt;/p&gt;
+
+&lt;h3 id=&quot;runtime-修改方法实现&quot;&gt;runtime 修改方法实现&lt;/h3&gt;
+
+&lt;p&gt;目前我采用的是通过 runtime 修改这两个方法的实现。&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;IMP _oam_willFinishOriginalImp;
+IMP _oam_didFinishOriginalImp;
+
+NSDate *_oam_before_willFinish_time;
+extern NSDate *_oam_after_DidFinish_time;
+
+static void __OAM_Application_WillFinishLaunchingWithOptions(id self, SEL selector, UIApplication *application, NSDictionary *launchOptions) {
+    _oam_before_willFinish_time = [NSDate date];
+    // 调用原始方法的实现
+    ((void (*)(id, SEL, UIApplication *, NSDictionary *))_oam_willFinishOriginalImp)(self, selector, application, launchOptions);
+}
+
+// Hook before willFinishLaunchingWithOptions and after didFinishLaunchingWithOptions to calculate this time used in this two methods
+__attribute__((constructor))
+void oam_hook_appdelegate(void) {
+    // willFinish
+    Class appDelegate = NSClassFromString(@&quot;AppDelegate&quot;);
+    SEL willFinish = @selector(application:willFinishLaunchingWithOptions:);
+    _oam_willFinishOriginalImp = class_getMethodImplementation(appDelegate, willFinish);
+    
+    Method willFinishMethod = class_getInstanceMethod(appDelegate, willFinish);
+    const char *willFinishTypeEncoding = method_getTypeEncoding(willFinishMethod);
+    class_replaceMethod(appDelegate, willFinish, (IMP)__OAM_Application_WillFinishLaunchingWithOptions, willFinishTypeEncoding);
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;为了缩小篇幅，这里只展示了处理 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;willFinish&lt;/code&gt;，另外一个同样的逻辑。&lt;/p&gt;
+
+&lt;p&gt;其实原理很简单，通过 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;class_replaceMethod&lt;/code&gt; 把方法的实现修改成自定义的函数实现，然后在自定义的实现中再调用原来的实现。&lt;/p&gt;
+
+&lt;p&gt;需要注意的就是自定义的实现也需要接收同样的参数，包括 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self&lt;/code&gt;；在调用原来的实现时就使用代码中的格式就可以了。&lt;/p&gt;
+
+&lt;h2 id=&quot;hook-第一个页面的-viewdidappear&quot;&gt;Hook 第一个页面的 viewDidAppear&lt;/h2&gt;
+
+&lt;p&gt;这一步也很简单，通过在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIViewController&lt;/code&gt; 的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+load&lt;/code&gt; 方法中把 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;viewDidAppear&lt;/code&gt; 跟自定义的方法进行交换实现就可以了。&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;static BOOL _oam_firstPageShow;
+
++ (void)load {
+    // ... 此处省略交换实现的代码
+}
+
+- (void)oam_viewDidAppear:(BOOL)animated {
+    // 在这里可以添加你的自定义逻辑
+    if (_oam_firstPageShow) return;
+    NSTimeInterval interval = [[NSDate date] timeIntervalSinceDate:_oam_after_DidFinish_time];
+    NSLog(@&quot;first page show time: %f&quot;, interval);
+    
+    // 调用原始的viewDidAppear方法
+    [self oam_viewDidAppear:animated];
+
+    _oam_firstPageShow = YES;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;这里统计的是从 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;application:didFinishLaunchWithOptions&lt;/code&gt; 到第一个页面的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;viewDidAppear&lt;/code&gt; 的时间。&lt;/p&gt;
+
+&lt;p&gt;需要注意的就是只需要统计第一个页面，所以用了一个 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_oam_firstPageShow&lt;/code&gt; 来进行记录。&lt;/p&gt;
+
+&lt;h2 id=&quot;总结&quot;&gt;总结&lt;/h2&gt;
+
+&lt;p&gt;上面包括了统计 ios 项目的启动阶段耗时的三大阶段，在其中用到了 runtime 和对 Mach-O 文件的理解，要做到灵活应用还是挺难的。
+有很多文章讲这方面的东西，但是基本都是只有思路，我这里直接贴出来了代码，更方便讨论学习。&lt;/p&gt;
+
+&lt;p&gt;我目前打算把 iOS APM 性能监控相关的功能都集成到一个库里面，目前是完成了这个启动时长统计的部分，代码放在了 &lt;a href=&quot;https://github.com/jacob-sheldon/OneAPM&quot;&gt;OneAPM 的 Github 仓库&lt;/a&gt;里面。如果对你有帮助的话，请不要吝惜你的点赞。&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;本人找工作中，有iOS坑的话麻烦联系我，微：happy7591&lt;/p&gt;
+&lt;/blockquote&gt;</content><author><name></name></author><summary type="html">本人找工作中，有iOS坑的话麻烦联系我，微：happy7591</summary></entry><entry><title type="html">全面了解 Objective-C 语言</title><link href="http://localhost:4000/ios/objective-c/" rel="alternate" type="text/html" title="全面了解 Objective-C 语言" /><published>2022-05-24T20:58:33+08:00</published><updated>2022-05-24T20:58:33+08:00</updated><id>http://localhost:4000/ios/Programming-with-Objective-C</id><content type="html" xml:base="http://localhost:4000/ios/objective-c/">&lt;h1 id=&quot;全面了解-objective-c-语言&quot;&gt;全面了解 Objective-C 语言&lt;/h1&gt;
 
 &lt;p&gt;到了2022年大多数iOS应用开发都开始用Swift了，不过 Objective-C 仍然是无法完全避开的，尤其是对于一些稍有规模的应用来说，需要用到好多三方库，而有一些三方库并没有Swift版本的。所以掌握 Objective-C 对于iOS开发还是很有必要的。&lt;/p&gt;
 
@@ -1740,136 +1953,4 @@ movl%eax, -4(%rbp)
 
 &lt;h1 id=&quot;总结&quot;&gt;&lt;a href=&quot;#总结&quot; title=&quot;总结&quot;&gt;&lt;/a&gt;总结&lt;/h1&gt;
 
-&lt;p&gt;这篇文章通过对C语言中一个简单的递归调用过程的汇编代码进行分析，了解到递归调用的本质是jmp跳转命令和函数调用栈的结合使用。由于篇幅有限对函数栈、内存以及寄存器进行过多的分析，有兴趣的小伙伴可以直接去看《深入理解计算机系统》第三章，如果有兴趣可以留言，以后继续分析这方面的内容。&lt;/p&gt;</content><author><name></name></author><category term="计算机基础" /><summary type="html">通过对汇编的分析可以了解程序的执行本质，对分析问题有很大的帮助，尤其在无法阅读源码的情况下更加有用。最近我刚阅读了《深入理解计算机系统（CSAPP）》的第三章，这一章主要讲解汇编的知识。为了对自己的学习有一个总结，并且给对汇编不甚了解的同学一点启发，所以有了这篇关于汇编的文章。</summary></entry><entry><title type="html">iOS事件传递链，巧用nextResponder跨层传递</title><link href="http://localhost:4000/ios/iOS-responder-chain/" rel="alternate" type="text/html" title="iOS事件传递链，巧用nextResponder跨层传递" /><published>2021-11-21T05:00:50+08:00</published><updated>2021-11-21T05:00:50+08:00</updated><id>http://localhost:4000/ios/responder-chain</id><content type="html" xml:base="http://localhost:4000/ios/iOS-responder-chain/">&lt;p&gt;在开发过程中你肯定遇到过这种场景：控制器的View中包含一个自定义视图A，A里又有包含button的自定义视图B，当用户点击button需要跳转到另一个控制器。此时跳转的逻辑当然应该在控制器里，那么要想把这个button的点击事件传递到控制器里要可以通过代理或者在控制器里&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self.view.A.B.button addTarget&lt;/code&gt;，除此之外还可以利用事件传递链来更和谐的处理。&lt;/p&gt;
-
-&lt;p&gt;本文我们主要包括对事件传递链理论的理解和利用传递链处理实际的业务需求。
-&lt;!-- more --&gt;
-在开发过程中你肯定遇到过这种场景：控制器的View中包含一个自定义视图A，A里又有包含button的自定义视图B，当用户点击button需要跳转到另一个控制器。此时跳转的逻辑当然应该在控制器里，那么要想把这个button的点击事件传递到控制器里要可以通过代理或者在控制器里&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self.view.A.B.button addTarget&lt;/code&gt;，除此之外还可以利用事件传递链来更和谐的处理。&lt;/p&gt;
-
-&lt;p&gt;本文我们主要包括对事件传递链理论的理解和利用传递链处理实际的业务需求。&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;&lt;img src=&quot;../../images/responder-chain/cover.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;h1 id=&quot;ios的事件响应链&quot;&gt;&lt;a href=&quot;#iOS的事件响应链&quot; title=&quot;iOS的事件响应链&quot;&gt;&lt;/a&gt;iOS的事件响应链&lt;/h1&gt;
-
-&lt;p&gt;首先要说明，这里说的_不是传递链_，传递链是事件的传递过程，而这里说的响应链是指事件在找到最合适的响应者以后的响应过程。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../../images/responder-chain/AView.png&quot; alt=&quot;项目场景&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;在这样一个例子中，当用户点击了最内层的Button以后要让最外层的ViewController跳转到一个新的VC，我们有这样几种方法：&lt;/p&gt;
-
-&lt;ol&gt;
-  &lt;li&gt;ViewB中添加&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;delegate&lt;/code&gt;属性，并让ViewA作为它的delegate，同样VC作为viewA的delegate。这种方法最为清晰，但是如果层数继续增加，这个代理层数就会很深，也就需要写很多的胶水代码。&lt;/li&gt;
-  &lt;li&gt;在VC中通过&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;self.view.viewA.viewB.button&lt;/code&gt;可以得到button的引用，之后可以直接通过&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;button addTarget:self xxx&lt;/code&gt;直接给button添加事件。这样做省去了添加代理，但是必须每一层都把view暴露在头文件里。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;除此之外还可以利用事件响应链的奇技淫巧来处理。在上面的场景中，点击button后的响应链是：&lt;em&gt;button -&amp;gt; viewB -&amp;gt; viewA -&amp;gt; vc.view -&amp;gt; vc&lt;/em&gt;，概括来说就是：事件响应链是由内向外，直到最外层的view，之后传递给控制器，最终传递给window。&lt;/p&gt;
-
-&lt;p&gt;其中有两点很重要&lt;/p&gt;
-
-&lt;ol&gt;
-  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIResponder&lt;/code&gt;及其子类可以作为响应链的一环，包括UIView及其子类和UIControl等。&lt;/li&gt;
-  &lt;li&gt;通过&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nextResponder&lt;/code&gt;可以获取到下一环的响应者。&lt;/li&gt;
-  &lt;li&gt;事件会在触发后沿着继承体系寻找能够处理它的类，直到找到。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h1 id=&quot;嵌套多层视图事件传递&quot;&gt;&lt;a href=&quot;#嵌套多层视图事件传递&quot; title=&quot;嵌套多层视图事件传递&quot;&gt;&lt;/a&gt;嵌套多层视图事件传递&lt;/h1&gt;
-
-&lt;p&gt;有了上面的理论基础，让我们来看一下类似场景使用响应链的处理方法。&lt;/p&gt;
-
-&lt;p&gt;首先在viewB中的代码和控制器中的代码大概是这样：&lt;/p&gt;
-
-&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// ViewB 
-[self.button addTarget:self action:@selector(showDetail) forControlEvents:UIControlEventsTouchupInside)];  
-  
-// 控制器
-- (void)showDetail {  
-  
-}  
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;现在问题是怎么才能让控制器响应到ViewB中的showDetail方法。&lt;/p&gt;
-
-&lt;p&gt;结合上面的理论知识，我们可以知道当在ViewB中没有处理&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;showDetail&lt;/code&gt;事件时，这个事件会沿着继承链向上寻找到ViewB的父类——UIView，而UIView中肯定没有showDetail的实现，那就继续到UIView的父类&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;UIResponder&lt;/code&gt;中寻找，很明显UIResponder中也没有这个方法的实现。&lt;/p&gt;
-
-&lt;p&gt;不过我们可以给UIResponder添加一个包含showDetail方法的分类来实现这个方法。&lt;/p&gt;
-
-&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// UIResponder+Chain.m    
-- (void)showDetail {  
-  
-}  
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;添加这样一个分类以后，点击ViewB中的button就不会崩溃了。不过这样仍然无法让VC中的事件得到响应。&lt;/p&gt;
-
-&lt;p&gt;在这个基础上，我们知道通过&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nextResponder&lt;/code&gt;可以获取到下一个响应者。那么给上面的空方法添加这样一个实现：&lt;/p&gt;
-&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// UIResponder+Chain.m  
-  
-- (void)showDetail {  
- [self.nextResponder showDetail];  
-}  
-
-通过添加`[self.nextResponder showDetail];`，整个过程成了这样：
-
-1.  ViewB中的按钮事件通过继承链被UIResponder响应了（也就是说ViewB响应了事件），
-2.  viewB的nextResponder是viewA，虽然viewA中没有实现但是通过继承链它仍然可以响应，
-3.  控制的视图作为viewA的父视图——viewA.nextResponder——也通过继承链处理这个事件，
-4.  控制器视图的nextReponsder就是控制器本身，而`[self.view.nextResponder showDetail]`就调用到了在控制器中实现的`showDetail`方法。
-
-经过这样的过程，实现了点击viewB中的按钮后控制器中的方法被调用了。
-
-到这里，恭喜你掌握了这个实际开发中的利器。🎉🎉🎉
-
-# [](#让视图层级中的多个父视图响应同一个事件 &quot;让视图层级中的多个父视图响应同一个事件&quot;)让视图层级中的多个父视图响应同一个事件
-
-在上面的例子中，当用户点击了viewB中的button之后，想要让viewA和控制器都能够获取到这个事件也很容易。
-
-只需要在viewA和控制器中同时实现`showDetail`方法，不过由于viewA并不是最终的一环，需要在方法中这样做：
-
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;// viewA
-#import “UIResponder+chain.h”&lt;/p&gt;
-&lt;ul&gt;
-  &lt;li&gt;(void)showDetail {&lt;br /&gt;
- [self.nextResponder showDetail];
- &amp;lt;#viewA自定义处理#&amp;gt;&lt;br /&gt;
-}
-```
-    &lt;h1 id=&quot;完善和注意点&quot;&gt;&lt;a href=&quot;#完善和注意点&quot; title=&quot;完善和注意点&quot;&gt;&lt;/a&gt;完善和注意点&lt;/h1&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2 id=&quot;消除undeclared-selector警告&quot;&gt;&lt;a href=&quot;#消除Undeclared-selector警告&quot; title=&quot;消除Undeclared selector警告&quot;&gt;&lt;/a&gt;消除&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Undeclared selector&lt;/code&gt;警告&lt;/h2&gt;
-
-&lt;p&gt;在viewB中给button添加了方法，但是并没有对应的实现，这时候Xcode会有&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Undeclared selector&lt;/code&gt;警告。要处理这个警告有两个方法：&lt;/p&gt;
-&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;// ViewB
-  
-// 处理Undeclared selector方法一  
-#import &quot;UIResponder+chain.h&quot;  
-- (void)showDetail {
- [self.nextResponder showDetail];
-}
- 
-// 处理Undeclared selector方法二  
-#pragma clang diagnostic push  
-#pragma clang diagnostic ignored &quot;-Wundeclared-selector&quot;  
- [self.button addTarget:self action:@selector(showDetail) forControlEvents:UIControlEventsTouchupInside)];  
-#pragma clang diagnostic pop  
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;h2 id=&quot;xib&quot;&gt;&lt;a href=&quot;#xib&quot; title=&quot;xib&quot;&gt;&lt;/a&gt;xib&lt;/h2&gt;
-
-&lt;p&gt;如果viewB是通过xib创建的，那么可以先把线连出来，之后把.m里面的方法删除&lt;/p&gt;
-
-&lt;h2 id=&quot;小心找不到响应者&quot;&gt;&lt;a href=&quot;#小心找不到响应者&quot; title=&quot;小心找不到响应者&quot;&gt;&lt;/a&gt;小心找不到响应者&lt;/h2&gt;
-
-&lt;p&gt;如果你一不小心在上面控制器的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;showDetail&lt;/code&gt;方法中又添加了&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;[self.nextResponder showDetail]&lt;/code&gt;，那程序就要crash了，为了防止这种情况，最好利用事件转发的特性进行防护——永远不要相信任何代码，包括自己写的。&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;到公众号【iOS开发栈】学习更多SwiftUI、iOS开发相关内容。&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h1 id=&quot;总结&quot;&gt;&lt;a href=&quot;#总结&quot; title=&quot;总结&quot;&gt;&lt;/a&gt;总结&lt;/h1&gt;
-
-&lt;p&gt;这篇文章我们掌握了通过利用事件响应链来处理多层嵌套的视图传递事件的方法，虽然这种方式看起来挺高端，但是正如上面说的一样，它的风险是很高的，所以如果必要不要使用这种奇技淫巧。&lt;/p&gt;</content><author><name></name></author><category term="UI" /><summary type="html">在开发过程中你肯定遇到过这种场景：控制器的View中包含一个自定义视图A，A里又有包含button的自定义视图B，当用户点击button需要跳转到另一个控制器。此时跳转的逻辑当然应该在控制器里，那么要想把这个button的点击事件传递到控制器里要可以通过代理或者在控制器里self.view.A.B.button addTarget，除此之外还可以利用事件传递链来更和谐的处理。</summary></entry></feed>
+&lt;p&gt;这篇文章通过对C语言中一个简单的递归调用过程的汇编代码进行分析，了解到递归调用的本质是jmp跳转命令和函数调用栈的结合使用。由于篇幅有限对函数栈、内存以及寄存器进行过多的分析，有兴趣的小伙伴可以直接去看《深入理解计算机系统》第三章，如果有兴趣可以留言，以后继续分析这方面的内容。&lt;/p&gt;</content><author><name></name></author><category term="计算机基础" /><summary type="html">通过对汇编的分析可以了解程序的执行本质，对分析问题有很大的帮助，尤其在无法阅读源码的情况下更加有用。最近我刚阅读了《深入理解计算机系统（CSAPP）》的第三章，这一章主要讲解汇编的知识。为了对自己的学习有一个总结，并且给对汇编不甚了解的同学一点启发，所以有了这篇关于汇编的文章。</summary></entry></feed>

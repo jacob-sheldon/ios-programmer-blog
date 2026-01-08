@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bundle exec jekyll serve:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\n修复 Ruby 3.2 兼容性问题\n\n升级 liquid gem 从 4.0.3 到 4.0.4，解决 Ruby 3.2 中 `untaint` 方法已移除导致的 Jekyll 构建失败问题。\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
+    ]
+  }
+}

@@ -21,8 +21,8 @@
 title: iOS 开发栈
 email: shizhiang@126.com
 description: 专注 iOS 开发的中文博客 | ObjC、Swift、Xcode、SwiftUI、CoreData、Runtime、Runloop、内存管理、多线程。
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+baseurl: "/ios-programmer-blog" # the subpath of your site, e.g. /blog
+url: "https://jacob-sheldon.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: shizhiang1
 github_username: jacob-sheldon
 
